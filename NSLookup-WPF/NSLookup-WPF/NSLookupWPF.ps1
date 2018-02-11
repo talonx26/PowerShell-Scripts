@@ -36,6 +36,10 @@ $ips.add($ip)
 
 $Global:syncHash = [hashtable]::Synchronized(@{})
 $newRunspace =[runspacefactory]::CreateRunspace()
+$syncHash.path = $PWD.path
+$syncHash.IPS = $ips
+$syncHash.IP = $ip
+$newRunspace.Name = "GUI"
 $newRunspace.ApartmentState = "STA"
 $newRunspace.ThreadOptions = "ReuseThread"
 $newRunspace.Open()
@@ -50,22 +54,29 @@ $psCmd = [PowerShell]::Create().AddScript({
 
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
-    Title="NSLookup Utility" Height="365.061" Width="488.725" SizeToContent="WidthAndHeight">
-    <Grid>
-        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="121,17,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <Label x:Name="label" Content="Input File" HorizontalAlignment="Left" Margin="10,17,0,0" VerticalAlignment="Top" Height="27"/>
-        <Label x:Name="label1" Content="Output file" HorizontalAlignment="Left" Margin="10,49,0,0" VerticalAlignment="Top" Width="88"/>
-        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="121,49,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Left" Margin="336,13,0,0" VerticalAlignment="Top" Width="75"/>
-        <ListView x:Name="IPResults" HorizontalAlignment="Left" Height="239" Margin="10,80,0,0" VerticalAlignment="Top" Width="450" >
+    Title="NSLookup Utility" SizeToContent="WidthAndHeight" Width="536" Height="378" MinWidth="520" MinHeight="378">
+    <Grid Margin="0,0,2,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="404*"/>
+            <ColumnDefinition Width="45*"/>
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="126,49,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <Label x:Name="label" Content="Input File" HorizontalAlignment="Left" Margin="15,49,0,0" VerticalAlignment="Top" Height="27"/>
+        <Label x:Name="label1" Content="Output file" HorizontalAlignment="Left" Margin="15,81,0,0" VerticalAlignment="Top" Width="88"/>
+        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="126,81,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,49,21,0" Width="75" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+        <ListView x:Name="IPResults" Margin="10,114,21,21" RenderTransformOrigin="0.508,0.533" MinHeight="200" MinWidth="450" Grid.ColumnSpan="2" >
             <ListView.View>
                 <GridView>
-                   <GridViewColumn Header="Target"      Width="150" DisplayMemberBinding="{Binding Target}"/>
+                    <GridViewColumn Header="Target"      Width="150" DisplayMemberBinding="{Binding Target}"/>
                     <GridViewColumn Header="HostName" Width="150" DisplayMemberBinding="{Binding HostName}"/>
                     <GridViewColumn Header="IPAddress" Width="150" DisplayMemberBinding="{Binding IPAddress}"/>
                 </GridView>
             </ListView.View>
+
         </ListView>
+        <TextBox x:Name="txtCurrDir" Margin="126,21,21,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+        <Label Content="Current Directory" HorizontalAlignment="Left" Margin="15,21,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 
@@ -75,21 +86,31 @@ $psCmd = [PowerShell]::Create().AddScript({
 
     $reader=(New-Object System.Xml.XmlNodeReader $xaml)
     $syncHash.Window=[Windows.Markup.XamlReader]::Load( $reader )
-    $syncHash.Add("IPAdd",$ips)
+	$form=[Windows.Markup.XamlReader]::Load( $reader )
+	
+	$syncHash.Host = $Host
+   # $syncHash.Add("IPAdd",$ips)
     [void][System.Reflection.Assembly]::LoadWithPartialName('presentationframework')
+	[System.Reflection.Assembly]::LoadWithPartialName("WindowsFormsIntegration")
+	[void][System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms")
+	
+
+	#$inputXML = $inputXML -replace 'mc:Ignorable="d"','' -replace "x:N",'N' -replace '^<Win.*', '<Window'
     [xml]$XAML = $xaml
         $xaml.SelectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]") | %{
         #Find all of the form types and add them as members to the synchash
         $syncHash.Add($_.Name,$syncHash.Window.FindName($_.Name) )
+    
 
     }
-
+	$xaml.SelectNodes("//*[@Name]") | %{Set-Variable -Name "WPF$($_.Name)" -Value $form.FindName($_.Name)}
     $Script:JobCleanup = [hashtable]::Synchronized(@{})
     $Script:Jobs = [system.collections.arraylist]::Synchronized((New-Object System.Collections.ArrayList))
 
     #region Background runspace to clean up jobs
     $jobCleanup.Flag = $True
     $newRunspace =[runspacefactory]::CreateRunspace()
+    $newRunspace.Name = "Cleanup"
     $newRunspace.ApartmentState = "STA"
     $newRunspace.ThreadOptions = "ReuseThread"          
     $newRunspace.Open()        
@@ -119,61 +140,121 @@ $psCmd = [PowerShell]::Create().AddScript({
     $jobCleanup.PowerShell.Runspace = $newRunspace
     $jobCleanup.Thread = $jobCleanup.PowerShell.BeginInvoke()  
     #endregion Background runspace to clean up jobs
+	<#$SyncHash.btnStart.add_Click({
+	
+	 #$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
+		$syncHash.txtinput.text = "test"
+	 })
+	#>
+	$syncHash.txtInput.Add_LostFocus({
+	if ($syncHash.txtInput.Text -like "*\*")
+		{
+			$file = $syncHash.txtInput.Text
+		}
+		else
+		{
+			$file = "$($syncHash.txtcurrdir.text)\$($synchash.txtinput.text)"
+		}
+	if (Test-Path  $file)
+     { $syncHash.btnStart.Dispatcher.Invoke([action]{$syncHash.btnStart.IsEnabled = $True},"Normal")
+     }
+     else
+     { $syncHash.btnStart.Dispatcher.Invoke([action]{$syncHash.btnStart.IsEnabled = $false},"Normal")}
+		
+})
+    $syncHash.btnStart.Add_Click({
+		if ($syncHash.txtInput.Text -like "*\*")
+		{
+			$file = $syncHash.txtInput.Text
+		}
+		else
+		{
+			$file = "$($syncHash.txtcurrdir.text)\$($synchash.txtinput.text)"
+		}
+		
+		
+		$syncHash.IPS.clear()
+Get-content $file | % {
+   remove-variable R -ErrorAction SilentlyContinue | out-null
+   
+   if ($_.split(".").count -eq 4)
+   {
+    
+    Try
+    {
+    #Write-host "By IP Address $_"
+    $name = $_
+    $R =  [System.Net.Dns]::GetHostbyAddress($_) 
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -Value $_
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value $R.HostName.ToUpper()
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $R.AddressList.IPAddressToString
+   $synchash.ips.add($ip)
 
-    $syncHash.button.Add_Click({
+    }
+    Catch
+    {
+    #Write-host "IP Address Exception $Name"
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -value $name
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value "Not Found"
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $name
+   $synchash.ips.add($ip)
+    }
+   }
+   else
+   {
+      Try
+       {
+       #Write-host "By HostName $_"
+       $name = $_.toUpper()
+       $R = [System.Net.Dns]::GetHostAddresses($_) 
+       foreach ($i  in $R ) 
+       {
+       $IP = New-Object psobject
+       $IP | Add-Member -Type NoteProperty -Name Target  -value $_
+       $IP | Add-Member -type NoteProperty -name HostName -value $_.toUpper()
+       $IP | Add-Member -Type NoteProperty -Name IPAddress -value $i.IPAddressToString
+      $synchash.ips.add($ip)
+       }
+       }
+       catch
+       {
+          #Write-host "HostName Exeption $name"
+          $IP = New-Object psobject
+          $IP | Add-Member -Type NoteProperty -Name Target -Value $name
+          $IP | Add-Member -Type NoteProperty -Name HostName -Value $name
+          $IP | Add-Member -Type NoteProperty -Name IPAddress -Value "Not Found"
+         $synchash.ips.add($ip)
+       }
+  
+   }
+
+    remove-variable R -ErrorAction SilentlyContinue | out-null
+    } 
+		if ($syncHash.txtOutput.Text -notlike "*.csv")
+		{ $syncHash.txtOutput.Text += ".csv"}
+		$syncHash.IPS | Export-Csv "$($syncHash.txtcurrdir.text)\$($synchash.txtoutput.text)" -NoTypeInformation
+
+
+		$SyncHash.Host.UI.Write( "button")
         #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
         #while ((Get-Job Sleeping).State -eq 'Running'){
             $x+= "."
         #region Boe's Additions
+        <#
         $newRunspace =[runspacefactory]::CreateRunspace()
+        $newrunspace.Name ="btnStart"
         $newRunspace.ApartmentState = "STA"
         $newRunspace.ThreadOptions = "ReuseThread"          
         $newRunspace.Open()
         $newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash) 
         $PowerShell = [PowerShell]::Create().AddScript({
-			Param ($IPAddress)
-Function Update-Window {
-        Param (
-            $Control,
-            $Property,
-            $Value,
-            [switch]$AppendContent
-        )
+			
+			Write-Host "click"
+			#$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
 
-        # This is kind of a hack, there may be a better way to do this
-        If ($Property -eq "Close") {
-            $syncHash.Window.Dispatcher.invoke([action]{$syncHash.Window.Close()},"Normal")
-            Return
-        }
-
-        # This updates the control based on the parameters passed to the function
-        $syncHash.$Control.Dispatcher.Invoke([action]{
-            # This bit is only really meaningful for the TextBox control, which might be useful for logging progress steps
-            If ($PSBoundParameters['AppendContent']) {
-                $syncHash.$Control.AppendText($Value)
-            } Else {
-                $syncHash.$Control.$Property = $Value
-            }
-        }, "Normal")
-    }                        
-Update-Window -Control StarttextBlock -Property ForeGround -Value White                                                       
-start-sleep -Milliseconds 850
-$x += 1..15000000
-update-window -Control ProgressBar -Property Value -Value 25
-
-update-window -Control TextBox -property text -value $x -AppendContent
-Update-Window -Control ProcesstextBlock -Property ForeGround -Value White                                                       
-start-sleep -Milliseconds 850
-update-window -Control ProgressBar -Property Value -Value 50
-
-Update-Window -Control FiltertextBlock -Property ForeGround -Value White                                                       
-start-sleep -Milliseconds 500
-update-window -Control ProgressBar -Property Value -Value 75
-
-Update-Window -Control DonetextBlock -Property ForeGround -Value White                                                       
-start-sleep -Milliseconds 200
-update-window -Control ProgressBar -Property Value -Value 100
-        }).AddArgument($IPS)
+})  
         $PowerShell.Runspace = $newRunspace
         [void]$Jobs.Add((
             [pscustomobject]@{
@@ -182,6 +263,7 @@ update-window -Control ProgressBar -Property Value -Value 100
                 Runspace = $PowerShell.BeginInvoke()
             }
         ))
+        #>
     })
 
     #region Window Close 
@@ -209,5 +291,120 @@ Write-host "to run display your UI, run:  " -NoNewline
 write-host -foregroundcolor Green '$data = $psCmd.BeginInvoke()'
 $data = $psCmd.BeginInvoke()
 sleep -Milliseconds 500
-
+$syncHash.txtCurrDir.Dispatcher.Invoke([action]{ $syncHash.txtCurrDir.text = $syncHash.path},"Normal")
 $syncHash.IPResults.Dispatcher.Invoke([action]{$syncHash.IPResults.ItemsSource = $ips},"Normal")
+
+# How to add to Background UI
+#$syncHash.Window.Dispatcher.Invoke([action]{$ips.Add($ip)},"Normal")
+<#
+$syncHash.txtInput.Add_LostFocus({
+	$syncHash.txtinput.dispatcher.invoke([action]{$global:test = $syncHash.txtinput.text})
+	
+})
+#>
+
+	function RunspacePing {
+param($syncHash)
+if ($Count -eq $null)
+    {NullCount; break}
+ 
+$syncHash.Host = $host
+$Runspace = [runspacefactory]::CreateRunspace()
+$Runspace.ApartmentState = "STA"
+$Runspace.ThreadOptions = "ReuseThread"
+$Runspace.Open()
+$Runspace.SessionStateProxy.SetVariable("syncHash",$syncHash) 
+#$Runspace.SessionStateProxy.SetVariable("count",$count)
+#$Runspace.SessionStateProxy.SetVariable("ComputerName",$ComputerName)
+#$Runspace.SessionStateProxy.SetVariable("TargetBox",$TargetBox)
+ 
+$code = {
+    $syncHash.Window.Dispatcher.invoke([action]{$Global:t = $syncHash.txtInput.Text},"Normal")
+	Write-Host $t
+    
+}
+$PSinstance = [powershell]::Create().AddScript($Code)
+$PSinstance.Runspace = $Runspace
+$job = $PSinstance.BeginInvoke()
+}
+
+
+
+
+	#Write-Host $return
+	<#
+Get-content $syncHash.txtInput.Text | % {
+	
+   remove-variable R -ErrorAction SilentlyContinue | out-null
+   
+   if ($_.split(".").count -eq 4)
+   {
+    
+    Try
+    {
+    #Write-host "By IP Address $_"
+    $name = $_
+    $R =  [System.Net.Dns]::GetHostbyAddress($_) 
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -Value $_
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value $R.HostName.ToUpper()
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $R.AddressList.IPAddressToString
+    $ips.add($IP)
+
+    }
+    Catch
+    {
+    #Write-host "IP Address Exception $Name"
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -value $name
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value "Not Found"
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $name
+    $ips.add($IP)
+    }
+   }
+   else
+   {
+      Try
+       {
+       #Write-host "By HostName $_"
+       $name = $_.toUpper()
+       $R = [System.Net.Dns]::GetHostAddresses($_) 
+       foreach ($i  in $R ) 
+       {
+       $IP = New-Object psobject
+       $IP | Add-Member -Type NoteProperty -Name Target  -value $_
+       $IP | Add-Member -type NoteProperty -name HostName -value $_.toUpper()
+       $IP | Add-Member -Type NoteProperty -Name IPAddress -value $i.IPAddressToString
+       $ips.add($IP)
+       }
+       }
+       catch
+       {
+          #Write-host "HostName Exeption $name"
+          $IP = New-Object psobject
+          $IP | Add-Member -Type NoteProperty -Name Target -Value $name
+          $IP | Add-Member -Type NoteProperty -Name HostName -Value $name
+          $IP | Add-Member -Type NoteProperty -Name IPAddress -Value "Not Found"
+          $ips.add($IP)
+       }
+  
+   }
+
+    remove-variable R -ErrorAction SilentlyContinue | out-null
+    }
+	
+	})#>
+
+
+
+function close-OrphanedRunSpaces()
+{
+   Get-Runspace
+   Write-Host "closing"
+    Get-Runspace | ? { $_.RunspaceAvailability -eq "Available"} | % { $_.close();$_.Dispose()}
+   write-host "Closed"
+   Get-Runspace
+}
+
+
+

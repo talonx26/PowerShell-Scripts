@@ -33,6 +33,7 @@
     <Compile Include="NSLookup-WPF.ps1" />
     <Compile Include="NSLookupWPF.ps1" />
     <Compile Include="Script1.ps1" />
+    <Compile Include="Script3.ps1" />
     <Compile Include="WPFFolder.ps1" />
     <Compile Include="WpfWindow2.xaml.ps1">
       <SubType>Code</SubType>
@@ -45,8 +46,64 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore">
+      <Name>PresentationCore</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
     <Reference Include="PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
       <Name>PresentationFramework</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="System">
+      <Name>System</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <Name>System.Drawing</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <Name>System.Windows.Forms</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="System.Xaml">
+      <Name>System.Xaml</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="UIAutomationProvider">
+      <Name>UIAutomationProvider</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="WindowsBase">
+      <Name>WindowsBase</Name>
+      <AssemblyName>
+      </AssemblyName>
+      <HintPath>
+      </HintPath>
+    </Reference>
+    <Reference Include="WindowsFormsIntegration">
+      <Name>WindowsFormsIntegration</Name>
       <AssemblyName>
       </AssemblyName>
       <HintPath>

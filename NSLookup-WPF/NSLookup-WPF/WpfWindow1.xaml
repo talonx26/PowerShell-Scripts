@@ -4,14 +4,18 @@
 
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
-    Title="NSLookup Utility" Height="365.061" Width="488.725" SizeToContent="WidthAndHeight">
-    <Grid>
-        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="121,17,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <Label x:Name="label" Content="Input File" HorizontalAlignment="Left" Margin="10,17,0,0" VerticalAlignment="Top" Height="27"/>
-        <Label x:Name="label1" Content="Output file" HorizontalAlignment="Left" Margin="10,49,0,0" VerticalAlignment="Top" Width="88"/>
-        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="121,49,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Left" Margin="336,13,0,0" VerticalAlignment="Top" Width="75"/>
-        <ListView x:Name="IPResults" HorizontalAlignment="Left" Height="239" Margin="10,80,0,0" VerticalAlignment="Top" Width="450" >
+    Title="NSLookup Utility" SizeToContent="WidthAndHeight" Width="536.617" Height="378.309" MinWidth="480" MinHeight="378">
+    <Grid Margin="0,0,2,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="404*"/>
+            <ColumnDefinition Width="45*"/>
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="126,49,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <Label x:Name="label" Content="Input File" HorizontalAlignment="Left" Margin="15,49,0,0" VerticalAlignment="Top" Height="27"/>
+        <Label x:Name="label1" Content="Output file" HorizontalAlignment="Left" Margin="15,81,0,0" VerticalAlignment="Top" Width="88"/>
+        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="126,81,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,49,21,0" Width="75" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+        <ListView x:Name="IPResults" Margin="10,114,21,21" RenderTransformOrigin="0.508,0.533" MinHeight="200" MinWidth="450" Grid.ColumnSpan="2" >
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Target"      Width="150" DisplayMemberBinding="{Binding Target}"/>
@@ -19,7 +23,10 @@
                     <GridViewColumn Header="IPAddress" Width="150" DisplayMemberBinding="{Binding IPAddress}"/>
                 </GridView>
             </ListView.View>
+
         </ListView>
+        <TextBox x:Name="txtCurrDir" Margin="126,21,21,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+        <Label Content="Current Directory" HorizontalAlignment="Left" Margin="15,21,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 
