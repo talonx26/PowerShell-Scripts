@@ -89,7 +89,7 @@ $psCmd = [PowerShell]::Create().AddScript({
 	$form=[Windows.Markup.XamlReader]::Load( $reader )
 	
 	$syncHash.Host = $Host
-   # $syncHash.Add("IPAdd",$ips)
+
     [void][System.Reflection.Assembly]::LoadWithPartialName('presentationframework')
 	[System.Reflection.Assembly]::LoadWithPartialName("WindowsFormsIntegration")
 	[void][System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms")
@@ -174,7 +174,17 @@ $psCmd = [PowerShell]::Create().AddScript({
 		
 		
 		$syncHash.IPS.clear()
-Get-content $file | % {
+		 #region Boe's Additions
+        $newRunspace =[runspacefactory]::CreateRunspace()
+		$syncHash.File = Get-content $file
+        $newRunspace.ApartmentState = "STA"
+		$newRunspace.Name = "DNSQuery"
+        $newRunspace.ThreadOptions = "ReuseThread"          
+        $newRunspace.Open()
+        $newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash) 
+        $PowerShell = [PowerShell]::Create().AddScript({
+
+$synchash.file | % {
    remove-variable R -ErrorAction SilentlyContinue | out-null
    
    if ($_.split(".").count -eq 4)
@@ -189,7 +199,7 @@ Get-content $file | % {
     $IP | Add-Member -Type NoteProperty -Name Target -Value $_
     $IP | Add-Member -Type NoteProperty -Name HostName -Value $R.HostName.ToUpper()
     $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $R.AddressList.IPAddressToString
-   $synchash.ips.add($ip)
+    $synchash.ips.add($ip)
 
     }
     Catch
@@ -215,7 +225,8 @@ Get-content $file | % {
        $IP | Add-Member -Type NoteProperty -Name Target  -value $_
        $IP | Add-Member -type NoteProperty -name HostName -value $_.toUpper()
        $IP | Add-Member -Type NoteProperty -Name IPAddress -value $i.IPAddressToString
-      $synchash.ips.add($ip)
+       $syncHash.Window.Dispatcher.Invoke([action]{$synchash.ips.Add($ip)},"Normal")
+		  # $synchash.ips.add($ip)
        }
        }
        catch
@@ -236,7 +247,7 @@ Get-content $file | % {
 		{ $syncHash.txtOutput.Text += ".csv"}
 		$syncHash.IPS | Export-Csv "$($syncHash.txtcurrdir.text)\$($synchash.txtoutput.text)" -NoTypeInformation
 
-
+})
 		$SyncHash.Host.UI.Write( "button")
         #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
         #while ((Get-Job Sleeping).State -eq 'Running'){
@@ -254,7 +265,7 @@ Get-content $file | % {
 			Write-Host "click"
 			#$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
 
-})  
+})   #>
         $PowerShell.Runspace = $newRunspace
         [void]$Jobs.Add((
             [pscustomobject]@{
@@ -263,7 +274,7 @@ Get-content $file | % {
                 Runspace = $PowerShell.BeginInvoke()
             }
         ))
-        #>
+       
     })
 
     #region Window Close 
