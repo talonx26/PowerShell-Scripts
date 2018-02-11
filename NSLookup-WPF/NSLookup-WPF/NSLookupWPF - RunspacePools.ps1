@@ -135,7 +135,11 @@ $psCmd = [PowerShell]::Create().AddScript({
     $jobCleanup.PowerShell.Runspace = $newRunspace
     $jobCleanup.Thread = $jobCleanup.PowerShell.BeginInvoke()
     #endregion Background runspace to clean up jobs
-
+	<#$SyncHash.btnStart.add_Click({
+	 #$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
+		$syncHash.txtinput.text = "test"
+	 })
+	#>
 	$syncHash.txtInput.Add_LostFocus({
 	if ($syncHash.txtInput.Text -like "*\*")
 		{
@@ -244,6 +248,18 @@ $synchash.file | % {
         #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
         #while ((Get-Job Sleeping).State -eq 'Running'){
             $x+= "."
+        #region Boe's Additions
+        <#
+        $newRunspace =[runspacefactory]::CreateRunspace()
+        $newrunspace.Name ="btnStart"
+        $newRunspace.ApartmentState = "STA"
+        $newRunspace.ThreadOptions = "ReuseThread"
+        $newRunspace.Open()
+        $newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash)
+        $PowerShell = [PowerShell]::Create().AddScript({
+			Write-Host "click"
+			#$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
+})   #>
         $PowerShell.Runspace = $newRunspace
         [void]$Jobs.Add((
             [pscustomobject]@{
@@ -289,6 +305,88 @@ $syncHash.txtInput.Add_LostFocus({
 })
 #>
 
+	function RunspacePing {
+param($syncHash)
+if ($Count -eq $null)
+    {NullCount; break}
+
+$syncHash.Host = $host
+$Runspace = [runspacefactory]::CreateRunspace()
+$Runspace.ApartmentState = "STA"
+$Runspace.ThreadOptions = "ReuseThread"
+$Runspace.Open()
+$Runspace.SessionStateProxy.SetVariable("syncHash",$syncHash)
+#$Runspace.SessionStateProxy.SetVariable("count",$count)
+#$Runspace.SessionStateProxy.SetVariable("ComputerName",$ComputerName)
+#$Runspace.SessionStateProxy.SetVariable("TargetBox",$TargetBox)
+
+$code = {
+    $syncHash.Window.Dispatcher.invoke([action]{$Global:t = $syncHash.txtInput.Text},"Normal")
+	Write-Host $t
+}
+$PSinstance = [powershell]::Create().AddScript($Code)
+$PSinstance.Runspace = $Runspace
+$job = $PSinstance.BeginInvoke()
+}
+
+	#Write-Host $return
+	<#
+Get-content $syncHash.txtInput.Text | % {
+   remove-variable R -ErrorAction SilentlyContinue | out-null
+
+   if ($_.split(".").count -eq 4)
+   {
+    Try
+    {
+    #Write-host "By IP Address $_"
+    $name = $_
+    $R =  [System.Net.Dns]::GetHostbyAddress($_)
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -Value $_
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value $R.HostName.ToUpper()
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $R.AddressList.IPAddressToString
+    $ips.add($IP)
+    }
+    Catch
+    {
+    #Write-host "IP Address Exception $Name"
+    $IP = New-Object psobject
+    $IP | Add-Member -Type NoteProperty -Name Target -value $name
+    $IP | Add-Member -Type NoteProperty -Name HostName -Value "Not Found"
+    $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $name
+    $ips.add($IP)
+    }
+   }
+   else
+   {
+      Try
+       {
+       #Write-host "By HostName $_"
+       $name = $_.toUpper()
+       $R = [System.Net.Dns]::GetHostAddresses($_)
+       foreach ($i  in $R )
+       {
+       $IP = New-Object psobject
+       $IP | Add-Member -Type NoteProperty -Name Target  -value $_
+       $IP | Add-Member -type NoteProperty -name HostName -value $_.toUpper()
+       $IP | Add-Member -Type NoteProperty -Name IPAddress -value $i.IPAddressToString
+       $ips.add($IP)
+       }
+       }
+       catch
+       {
+          #Write-host "HostName Exeption $name"
+          $IP = New-Object psobject
+          $IP | Add-Member -Type NoteProperty -Name Target -Value $name
+          $IP | Add-Member -Type NoteProperty -Name HostName -Value $name
+          $IP | Add-Member -Type NoteProperty -Name IPAddress -Value "Not Found"
+          $ips.add($IP)
+       }
+   }
+
+    remove-variable R -ErrorAction SilentlyContinue | out-null
+    }
+	})#>
 
 function close-OrphanedRunSpaces()
 {
