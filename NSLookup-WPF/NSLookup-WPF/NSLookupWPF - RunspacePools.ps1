@@ -1,4 +1,5 @@
-﻿function Get-SyncHashValue
+﻿close-OrphanedRunSpaces
+function Get-SyncHashValue
 {
     [CmdletBinding()]
     param (
@@ -103,7 +104,7 @@ $psCmd = [PowerShell]::Create().AddScript({
     $Script:Jobs = [system.collections.arraylist]::Synchronized((New-Object System.Collections.ArrayList))
 
     #region Background runspace to clean up jobs
-    $jobCleanup.Flag = $True
+    $global:jobCleanup.Flag = $True
     $newRunspace =[runspacefactory]::CreateRunspace()
     $newRunspace.Name = "Cleanup"
     $newRunspace.ApartmentState = "STA"
@@ -135,11 +136,7 @@ $psCmd = [PowerShell]::Create().AddScript({
     $jobCleanup.PowerShell.Runspace = $newRunspace
     $jobCleanup.Thread = $jobCleanup.PowerShell.BeginInvoke()
     #endregion Background runspace to clean up jobs
-	<#$SyncHash.btnStart.add_Click({
-	 #$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
-		$syncHash.txtinput.text = "test"
-	 })
-	#>
+
 	$syncHash.txtInput.Add_LostFocus({
 	if ($syncHash.txtInput.Text -like "*\*")
 		{
@@ -154,7 +151,7 @@ $psCmd = [PowerShell]::Create().AddScript({
      }
      else
      { $syncHash.btnStart.Dispatcher.Invoke([action]{$syncHash.btnStart.IsEnabled = $false},"Normal")}
-})
+})################################################################################################################
     $syncHash.btnStart.Add_Click({
 		$syncHash.btnStart.IsEnabled = $false
 		if ($syncHash.txtInput.Text -like "*\*")
@@ -166,36 +163,68 @@ $psCmd = [PowerShell]::Create().AddScript({
 			$file = "$($syncHash.txtcurrdir.text)\$($synchash.txtinput.text)"
 		}
 
-		$syncHash.IPS.clear()
-		 #region Boe's Additions
-        $newRunspace =[runspacefactory]::CreateRunspace()
-		$syncHash.File = Get-content $file | select -Unique
-        $newRunspace.ApartmentState = "STA"
-		$newRunspace.Name = "DNSQuery"
-        $newRunspace.ThreadOptions = "ReuseThread"
-        $newRunspace.Open()
-        $newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash)
-        $PowerShell = [PowerShell]::Create().AddScript({
-	    $ServerCount = $synchash.file.count
-        $i= 0
-$synchash.file | % {
-	$i = $synchash.file.IndexOf($_) +1
-	$p = [math]::round($i / $ServerCount * 100)
-	$synchash.lblProgress.Dispatcher.Invoke([action]{$synchash.lblProgress.Content = "$i/$servercount  $p%"},"Normal")
-	$synchash.Progress.Dispatcher.Invoke([action]{$syncHash.Progress.Value = $p},"Normal")
-	
-    #$syncHash.Progress.Value = 
-	remove-variable R -ErrorAction SilentlyContinue | out-null
+		$PoolSize = 10
+$Global:runspaces = New-Object System.Collections.ArrayList   
+#$hash = [hashtable]::Synchronized(@{})
+$sessionstate = [system.management.automation.runspaces.initialsessionstate]::CreateDefault()
+$sessionstate.Variables.Add((New-Object -TypeName System.Management.Automation.Runspaces.SessionStateVariableEntry(‘Synchash’, $synchash,$null)))
+$runspacepool = [runspacefactory]::CreateRunspacePool(1, $PoolSize, $sessionstate, $Host)
+$runspacepool.ApartmentState = "STA"
+$runspacepool.ThreadOptions = "ReuseThread"
+$runspacepool.Open()
+ 
+$Global:JobCleanup = [hashtable]::Synchronized(@{})
+$Global:jobCleanup.Flag = $True
+ 
+Function Add-Runspace {
+    Param($RSName,$Block,$Arg1,$Arg2,$Arg3,$Arg4,$Arg5,$Arg6)
+    $powershell = [powershell]::Create().AddScript($Block,$true).AddArgument($Arg1).AddArgument($Arg2).AddArgument($Arg3).AddArgument($Arg4).AddArgument($Arg5).AddArgument($Arg6)
+    $powershell.RunspacePool = $runspacepool
+    $temp = "" | Select-Object PowerShell,Runspace,Name
+    $Temp.Name = $RSName
+    $Temp.PowerShell = $powershell
+    $Temp.Runspace = $powershell.BeginInvoke()
+    $runspaces.Add($temp) | Out-Null
+}
+ 
+$RunspaceCleanup = {
+    #Routine to handle completed runspaces
+    Param($Global:runspaces,$Global:jobCleanup)
+    Do {    
+        Foreach($Global:runspace in $Global:runspaces) {            
+            If ($Global:runspace.Runspace.isCompleted) {
+                [void]$Global:runspace.powershell.EndInvoke($Global:runspace.Runspace)
+                $Global:runspace.powershell.dispose()
+                $Global:runspace.Runspace = $null
+                $Global:runspace.powershell = $null               
+            } 
+        }
+        #Clean out unused runspace jobs
+        $temphash = $Global:runspaces.clone()
+        $temphash | Where {
+            $_.runspace -eq $Null
+        } | ForEach {
+            $Global:runspaces.remove($_)
+        }        
+        Start-Sleep -Seconds 1     
+    } while ($Global:jobCleanup.Flag)
+}
+ 
+Add-Runspace -RSName "Cleanup" -Block $RunspaceCleanup -Arg1 $Global:runspaces -Arg2 $Global:jobCleanup
 
-   if ($_ -as [ipaddress] )
+		$scriptblock = {
+	Param($Address)
+ $synchash.Host.ui.write("test")		
+$synchash.lblProgress.Dispatcher.Invoke([action]{$synchash.lblProgress.Content = "$address"},"Normal")
+   if ($Address -as [ipaddress] )
    {
     Try
     {
-    #Write-host "By IP Address $_"
-    $name = $_
-    $R =  [System.Net.Dns]::GetHostbyAddress($_)
+    #Write-host "By IP Address $Address"
+    $name = $Address
+    $R =  [System.Net.Dns]::GetHostbyAddress($Address)
     $IP = New-Object psobject
-    $IP | Add-Member -Type NoteProperty -Name Target -Value $_
+    $IP | Add-Member -Type NoteProperty -Name Target -Value $Address
     $IP | Add-Member -Type NoteProperty -Name HostName -Value $R.HostName.ToUpper()
     $IP | Add-Member -Type NoteProperty -Name IPAddress -Value $R.AddressList.IPAddressToString
     $syncHash.Window.Dispatcher.Invoke([action]{$synchash.ips.Add($ip)},"Normal")
@@ -214,14 +243,14 @@ $synchash.file | % {
    {
       Try
        {
-       #Write-host "By HostName $_"
-       $name = $_.toUpper()
-       $R = [System.Net.Dns]::GetHostAddresses($_)
+       #Write-host "By HostName $Address"
+       $name = $Address.toUpper()
+       $R = [System.Net.Dns]::GetHostAddresses($Address)
        foreach ($i  in $R )
        {
        $IP = New-Object psobject
-       $IP | Add-Member -Type NoteProperty -Name Target  -value $_
-       $IP | Add-Member -type NoteProperty -name HostName -value $_.toUpper()
+       $IP | Add-Member -Type NoteProperty -Name Target  -value $Address
+       $IP | Add-Member -type NoteProperty -name HostName -value $Address.toUpper()
        $IP | Add-Member -Type NoteProperty -Name IPAddress -value $i.IPAddressToString
        $syncHash.Window.Dispatcher.Invoke([action]{$synchash.ips.Add($ip)},"Normal")
 		  # $synchash.ips.add($ip)
@@ -240,26 +269,53 @@ $synchash.file | % {
 
     remove-variable R -ErrorAction SilentlyContinue | out-null
     }
+
+		$scriptblock1 = {
+		param ($address)
+        
+		$synchash.lblProgress.Dispatcher.Invoke([action]{$synchash.lblProgress.Content = "$address"},"Normal")
+		$filepath = "C:\Users\Talonx\Source\Repos\PowerShell-Scripts\NSLookup-WPF\NSLookup-WPF"
+		$address | out-file "$filepath\123.txt" -append
+		"test" | out-file "$filepath\123.txt" -append
+		write-verbose "test"
+		write-verbose $address
+        sleep -seconds 30
+}
+		$syncHash.IPS.clear()
+		 #region Boe's Additions
+       # $newRunspace =[runspacefactory]::CreateRunspace()
+		
+		$syncHash.File = Get-content $file | select -Unique
+       # $newRunspace.ApartmentState = "STA"
+		#$newRunspace.Name = "DNSQuery"
+        #$newRunspace.ThreadOptions = "ReuseThread"
+        #$newRunspace.Open()
+		$syncHash.file | %{  
+			Write-Verbose "$_"
+			Add-Runspace -RSName "$_" -Block $scriptblock -arg1 $_
+
+		}
+       <#
+		$newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash)
+        $PowerShell = [PowerShell]::Create().AddScript({
+	    $ServerCount = $synchash.file.count
+        $i= 0
+$synchash.file | % {
+	$i = $synchash.file.IndexOf($_) +1
+	$p = [math]::round($i / $ServerCount * 100)
+	$synchash.lblProgress.Dispatcher.Invoke([action]{$synchash.lblProgress.Content = "$i/$servercount  $p%"},"Normal")
+	$synchash.Progress.Dispatcher.Invoke([action]{$syncHash.Progress.Value = $p},"Normal")
+	
+    #$syncHash.Progress.Value = 
+	remove-variable R -ErrorAction SilentlyContinue | out-null
+
+
 		if ($syncHash.txtOutput.Text -notlike "*.csv")
 		{ $syncHash.txtOutput.Text += ".csv"}
 		$syncHash.IPS | Export-Csv "$($syncHash.txtcurrdir.text)\$($synchash.txtoutput.text)" -NoTypeInformation
-})
+})#>
 		$SyncHash.Host.UI.Write( "button")
-        #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
-        #while ((Get-Job Sleeping).State -eq 'Running'){
             $x+= "."
-        #region Boe's Additions
-        <#
-        $newRunspace =[runspacefactory]::CreateRunspace()
-        $newrunspace.Name ="btnStart"
-        $newRunspace.ApartmentState = "STA"
-        $newRunspace.ThreadOptions = "ReuseThread"
-        $newRunspace.Open()
-        $newRunspace.SessionStateProxy.SetVariable("SyncHash",$SyncHash)
-        $PowerShell = [PowerShell]::Create().AddScript({
-			Write-Host "click"
-			#$syncHash.txtinput.text.dispatcher.invoke([action]{$syncHash.txtinput.Text = "test"},"Normal")
-})   #>
         $PowerShell.Runspace = $newRunspace
         [void]$Jobs.Add((
             [pscustomobject]@{
@@ -269,14 +325,15 @@ $synchash.file | % {
             }
         ))
     })
-
+	
     #region Window Close
     $syncHash.Window.Add_Closed({
         Write-Verbose 'Halt runspace cleanup job processing'
-        $jobCleanup.Flag = $False
+        $global:jobCleanup.Flag = $False
 
         #Stop all runspaces
         $jobCleanup.PowerShell.Dispose()
+        close-OrphanedRunSpaces
     })
     #endregion Window Close
     #endregion Boe's Additions
