@@ -59,11 +59,11 @@ $psCmd = [PowerShell]::Create().AddScript({
             <ColumnDefinition Width="472*"/>
             <ColumnDefinition Width="5*"/>
         </Grid.ColumnDefinitions>
-        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="145,49,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="160"/>
+        <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="145,49,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
         <Label x:Name="label" Content="Input File" HorizontalAlignment="Left" Margin="15,49,0,0" VerticalAlignment="Top" Height="27" Width="72"/>
         <Label x:Name="label1" Content="Output file" HorizontalAlignment="Left" Margin="15,81,0,0" VerticalAlignment="Top" Width="88" Height="30"/>
-        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="145,81,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="160"/>
-        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,49,-0.2,0" Width="75" VerticalAlignment="Top" Grid.ColumnSpan="2" Height="26" IsEnabled="False"/>
+        <TextBox x:Name="txtOutput" HorizontalAlignment="Left" Height="23" Margin="145,81,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,49,-0.2,0" Width="75" VerticalAlignment="Top" Grid.ColumnSpan="2" Height="26"/>
 
         <DataGrid x:Name="IPResults" AutoGenerateColumns="False" Margin="15,129,10,9.2" MinHeight="200" MinWidth="450"  MaxHeight="600" MaxWidth="800" HorizontalContentAlignment="Stretch"  >
             <DataGrid.Columns>
@@ -74,9 +74,8 @@ $psCmd = [PowerShell]::Create().AddScript({
         </DataGrid>
         <TextBox x:Name="txtCurrDir" Margin="145,21,-0.2,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Grid.ColumnSpan="2" Height="26"/>
         <Label Content="Current Directory" HorizontalAlignment="Left" Margin="15,21,0,0" VerticalAlignment="Top" Height="30" Width="125"/>
-		<ProgressBar x:Name="Progress" HorizontalAlignment="Left" Height="20" Margin="15,109,0,0" VerticalAlignment="Top" Width="337"/>
-        <Label x:Name="lblProgress" Content="Label" HorizontalAlignment="Left" Margin="15,104,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.455,1.02" Width="337" HorizontalContentAlignment="Center"/>
-	    <Button x:Name="btnExport" Grid.ColumnSpan="2" Content="Export" HorizontalAlignment="Right" Margin="402,78,-0.2,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
+		 <ProgressBar x:Name="Progress" HorizontalAlignment="Left" Height="20" Margin="15,111,0,0" VerticalAlignment="Top" Width="337"/>
+        <Label x:Name="lblProgress" Content="" HorizontalAlignment="Left" Margin="15,105,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.455,1.02" Width="337" HorizontalContentAlignment="Center"/>
 
     </Grid>
 
@@ -152,22 +151,6 @@ $psCmd = [PowerShell]::Create().AddScript({
      else
      { $syncHash.btnStart.Dispatcher.Invoke([action]{$syncHash.btnStart.IsEnabled = $false},"Normal")}
 })
-
-$syncHash.btnExport.add_Click({
-    if ($synchash.txtOutput.Text.Trim().Length -eq 0) 
-    {
-        "blank" | Out-File "C:\Users\nk23208\Source\Repos\PowerShell-Scripts\NSLookup-WPF\NSLookup-WPF\test.txt"
-        $file = "$($synchash.txtCurrDir.text)\$($synchash.txtInput.Text)"
-        $file = (gci $file).BaseName
-        $synchash.txtOutput.Text = "$file-$(get-date -f "MM-dd-yyyy").csv"
-    } 
-	if ($syncHash.txtOutput.Text -notlike "*.csv")
-	{ 
-        $syncHash.txtOutput.Text += ".csv"
-    }
-	$syncHash.IPS | Export-Csv "$($syncHash.txtcurrdir.text)\$($synchash.txtoutput.text)" -NoTypeInformation
-})
-
     $syncHash.btnStart.Add_Click({
 		$syncHash.btnStart.IsEnabled = $false
 		if ($syncHash.txtInput.Text -like "*\*")
@@ -253,7 +236,9 @@ $synchash.file | % {
 
     remove-variable R -ErrorAction SilentlyContinue | out-null
     }
-		$synchash.btnExport.Dispatcher.Invoke([action]{$synchash.btnExport.IsEnabled = $true},"Normal")
+		if ($syncHash.txtOutput.Text -notlike "*.csv")
+		{ $syncHash.txtOutput.Text += ".csv"}
+		$syncHash.IPS | Export-Csv "$($syncHash.txtcurrdir.text)\$($synchash.txtoutput.text)" -NoTypeInformation
 })
 		$SyncHash.Host.UI.Write( "button")
         #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
@@ -267,8 +252,6 @@ $synchash.file | % {
                 Runspace = $PowerShell.BeginInvoke()
             }
         ))
-
-    
     })
 
     #region Window Close
