@@ -28,18 +28,20 @@ $psCmd = [PowerShell]::Create().AddScript( {
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        Title="WSUS Install Monitor" Height="456.329" Width="894.903" MinWidth="900">
+        Title="WSUS Install Monitor" Height="456.329" Width="894.903" MinWidth="1000" MinHeight="432">
 
-     <Grid Margin="0,-55,3,-31">
+     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="4*" />
             <ColumnDefinition />
 
         </Grid.ColumnDefinitions>
-        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,65,23,0" VerticalAlignment="Top" Width="75" Grid.Column="1" IsEnabled="False"/>
-         <Label Content="Data Folder" HorizontalAlignment="Left" Margin="20,67,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtDataFolder" HorizontalAlignment="Left" Height="23" Margin="199,65,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="572" Grid.ColumnSpan="2"/> 
-         <DataGrid x:Name="WSUSResults" Grid.Column="0"  Height="100" Margin="20,98,23,49" AutoGenerateColumns="False" Grid.ColumnSpan="2" MinHeight="300">
+        <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Right" Margin="0,10,120,0" VerticalAlignment="Top" Width="75" Grid.Column="1" IsEnabled="False"/>
+        <Button x:Name="btnStop" Content="Stop" HorizontalAlignment="Right" Margin="0,10,40,0" VerticalAlignment="Top" Width="75" Grid.Column="1" IsEnabled="True"/>
+        
+        <Label Content="Data Folder" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtDataFolder" HorizontalAlignment="Left" Height="23" Margin="100,10,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="572" Grid.ColumnSpan="2"/> 
+         <DataGrid x:Name="WSUSResults" Grid.Column="0"   Margin="10,50,10,10" AutoGenerateColumns="False" Grid.ColumnSpan="2" MinHeight="300" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" UseLayoutRounding="True">
             <DataGrid.RowStyle>
                 <Style TargetType ="DataGridRow">
                     <Style.Triggers>
@@ -55,11 +57,7 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             <Setter Property="Background" Value="OrangeRed" />
                             <Setter Property="Foreground" Value="Yellow"/>
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding Action}" Value="Search">
-                            <Setter Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="Yellow"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Action}" Value="Catalog">
+                       <DataTrigger Binding="{Binding Action}" Value="Catalog">
                             <Setter Property="Background" Value="OrangeRed" />
                             <Setter Property="Foreground" Value="Yellow"/>
                         </DataTrigger>
@@ -89,7 +87,7 @@ $psCmd = [PowerShell]::Create().AddScript( {
                 </GroupStyle>
             </DataGrid.GroupStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding Computer}" Width="120" ClipboardContentBinding="{x:Null}" Header="Computer"/>
+                <DataGridTextColumn Binding="{Binding Computer}" Width="120" ClipboardContentBinding="{x:Null}" Header="Computer" />
                 <DataGridTextColumn Binding="{Binding Action}" Width="100" ClipboardContentBinding="{x:Null}" Header="Action"/>
                 <DataGridTextColumn Binding="{Binding Time}"  Width="130" ClipboardContentBinding="{x:Null}" Header="Time"/>
                 <DataGridTemplateColumn x:Name="ProgressCell" ClipboardContentBinding="{x:Null}" Header="Progress" Width="200" CellTemplate="{StaticResource MyDataTemplate}"/>
@@ -117,7 +115,6 @@ $psCmd = [PowerShell]::Create().AddScript( {
             #Find all of the form types and add them as members to the synchash
             $syncHash.Add($_.Name, $syncHash.Window.FindName($_.Name) )
         }
-        #$xaml.SelectNodes("//*[@Name]") | %{Set-Variable -Name "WPF$($_.Name)" -Value $form.FindName($_.Name)}
         $Script:JobCleanup = [hashtable]::Synchronized(@{})
         $Script:Jobs = [system.collections.arraylist]::Synchronized((New-Object System.Collections.ArrayList))
 
@@ -128,8 +125,10 @@ $psCmd = [PowerShell]::Create().AddScript( {
         $newRunspace.ApartmentState = "STA"
         $newRunspace.ThreadOptions = "ReuseThread"
         $newRunspace.Open()
+        $syncHash.jobs = $Script:Jobs
         $newRunspace.SessionStateProxy.SetVariable("jobCleanup", $jobCleanup)
-        $newRunspace.SessionStateProxy.SetVariable("jobs", $jobs)
+        $newRunspace.SessionStateProxy.SetVariable("jobs", $script:jobs)
+        $newRunspace.SessionStateProxy.SetVariable("synchash", $synchash)
         $jobCleanup.PowerShell = [PowerShell]::Create().AddScript( {
                 #Routine to handle completed runspaces
                 Do {
@@ -143,9 +142,9 @@ $psCmd = [PowerShell]::Create().AddScript( {
                     }
                     #Clean out unused runspace jobs
                     $temphash = $jobs.clone()
-                    $temphash | Where {
+                    $temphash | Where-Object {
                         $_.runspace -eq $Null
-                    } | ForEach {
+                    } | ForEach-Object {
                         $jobs.remove($_)
                     }
                     Start-Sleep -Seconds 1
@@ -157,12 +156,7 @@ $psCmd = [PowerShell]::Create().AddScript( {
 
 
         $syncHash.txtDataFolder.Add_LostFocus( {
-                # if ($syncHash.txtDataFolder.Text -like "*\*") {
-                #     $file = $syncHash.txtDataFolder.Text
-                # }
-                # else {
-                #     $file = "$($syncHash.txtcurrdir.text)\$($synchash.txtDataFolder.text)"
-                # }
+               
                 if (Test-Path  $syncHash.txtDataFolder.text) {
                     $syncHash.btnStart.Dispatcher.Invoke([action] {$syncHash.btnStart.IsEnabled = $True}, "Normal")
                 }
@@ -171,7 +165,18 @@ $psCmd = [PowerShell]::Create().AddScript( {
             })
 
         $syncHash.btnStart.Add_Click( {
-		
+                $Global:timer = new-object System.Windows.Threading.DispatcherTimer
+                #Fire off every 5 seconds
+                Write-Verbose “Adding 1 second interval to timer object”
+                $timer.Interval = [TimeSpan]”0:0:1.00"
+                #Add event per tick
+                Write-Verbose "Adding Tick Event to timer object"
+                $global:timer.Add_Tick( {
+                        $syncHash.wsusresults.Dispatcher.Invoke([action] { $syncHash.wsusresults.items.refresh()}, "Normal")
+                    })
+                #Start timer
+                Write-Verbose “Starting Timer”
+                $timer.Start()
                 #$syncHash.IPS.clear()
                 #region Boe's Additions
                 $newRunspace = [runspacefactory]::CreateRunspace()
@@ -183,35 +188,14 @@ $psCmd = [PowerShell]::Create().AddScript( {
                 $newRunspace.SessionStateProxy.SetVariable("SyncHash", $SyncHash)
                 $PowerShell = [PowerShell]::Create().AddScript( {
                         Get-EventSubscriber | ForEach-Object { Unregister-Event $_.SubscriptionId}
-                        $syncHash.host.ui.Writeline("Click Runspace")
-                        $syncHash.host.ui.Writeline("Runspace PID $PID")
-
-
-                        <#  $stat = New-Object psobject
-                        $stat | Add-Member -Type NoteProperty -Name Computer -Value "test1"
-                        $stat | Add-Member  -type NoteProperty -Name Action -Value "Install"
-                        $stat | Add-Member -type NoteProperty -Name Time -Value "12:00:00"
-                        $stat | Add-Member -Type NoteProperty -Name Description -Value "test install"
-                        $stat | Add-Member -type NoteProperty -Name Progress -Value $(Get-Random -Maximum 100)
-                         #>
-                        $synchash.host.ui.WriteLine("Synced: `n $($synchash.computers.IsSynchronized)")
-                        #   $synchash.Window.dispatcher.invoke([action] {$synchash.computers.add($stat)}, "Normal")
+                        #** Debug $synchash.host.ui.Writeline("Click Runspace")
+                        #** Debug $synchash.host.ui.Writeline("Runspace PID $PID")
+                        #** Debug $synchash.host.ui.WriteLine("Synced: `n $($synchash.computers.IsSynchronized)")
                         function Get-LastLine {
                             [cmdletBinding()]
                             Param($path)
-   
-                            #$oldConsole = [console]::TreatControlCAsInput
-                            #[console]::TreatControlCAsInput = $true
-                            #write-host "enter"
-                            #write-host "computers : $($global:computers -isnot [System.Array])"
-                            $synchash.Host.ui.WriteLine("Get-LastLine")
-                            # $synchash.Host.ui.d
-                            write-debug "entrance"
-                            write-verbose "Entering LastLine"
-   
-                            # $synchash.window.Dispatcher.invoke([action] {
-                            $synchash.Host.ui.WriteLine("Enter Invoke")    
-                            #$stat = "" | Select-Object Computer, Action, Time, Progress, Description
+                            #** Debug $synchash.host.ui.WriteLine("Get-LastLine")
+                            #** Debug $synchash.host.ui.WriteLine("Enter Invoke")    
                             $lines = Get-Content $path
                             $lines = $lines.split("`n")
                                     
@@ -225,12 +209,12 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             $stat | Add-Member  -type NoteProperty -Name Action -Value $line[1]
                             $stat | Add-Member -type NoteProperty -Name Time -Value $line[2]
                             $stat | Add-Member -Type NoteProperty -Name Description -Value $line[3]
-                            $synchash.host.ui.writeline("Lines : $line[3]")
+                            #** Debug $synchash.host.ui.writeline("Lines : $line[3]")
                             $progress = 0
                             if ($line[3] -ilike "*Total Progress*") {
                                 $progress = $line[3].Substring($line[3].IndexOf("Total Progress"))
                                
-                                $synchash.host.ui.writeline("Progress : $progress")
+                                #** Debug $synchash.host.ui.writeline("Progress : $progress")
                                 if ($line[3].Substring($line[3].IndexOf("Total Progress")) -match "\d{1,3}") {
                                     $progress = $Matches[0]
                                 }
@@ -240,74 +224,71 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             }
                           
                             $stat | Add-Member -type NoteProperty -Name Progress -Value $progress
-                            $synchash.Host.ui.WriteLine("stat : $stat")
+                            #** Debug $synchash.host.ui.WriteLine("stat : $stat")
                             #write-host "Count $($comp.count)"
-                            $synchash.Host.ui.WriteLine(" $PID Computer Count : $($synchash.computers.count)")
+                            #** Debug $synchash.host.ui.WriteLine(" $PID Computer Count : $($synchash.computers.count)")
                             #$synchash.Window.dispatcher.invoke([action] {$synchash.computers.add($stat)}, "Normal")
                             
                             if ($synchash.computers.count -eq 0 ) {
                                 #Write-host "Zero"
-                                $synchash.Host.ui.WriteLine("$PID Computer Count :initializing")
+                                #** Debug $synchash.host.ui.WriteLine("$PID Computer Count :initializing")
                                 
                                 try {
                                     # $synchash.computers.add($stat)
                                     $global:synchash.computers.add($stat)
                                 }
                                 catch {
-                                    $synchash.Host.ui.WriteLine("$PID Init Error: $_")
+                                    #** Debug $synchash.host.ui.WriteLine("$PID Init Error: $_")
                                 }
                               
-                                $synchash.Host.ui.WriteLine("$PID after Init Computer Count : $($synchash.computers.count)")
+                                #** Debug $synchash.host.ui.WriteLine("$PID after Init Computer Count : $($synchash.computers.count)")
                             }
                             
                             else {
                                 if ($synchash.computers.computer.Contains($stat.computer)) {
-                                    $synchash.Host.ui.WriteLine("$PID Found Computer")
+                                    #** Debug $synchash.host.ui.WriteLine("$PID Found Computer")
                                     $index = $synchash.computers.computer.IndexOf($stat.computer)
                                     try {
-                                        $synchash.Host.ui.WriteLine("Updating Computer")
-                                        $synchash.Host.ui.WriteLine("Index :$index")
+                                        #** Debug $synchash.host.ui.WriteLine("Updating Computer")
+                                        #** Debug $synchash.host.ui.WriteLine("Index :$index")
                                         
                                         $synchash.computers[$index] = $stat
                                             
                                     }
                                     catch {
-                                        $synchash.Host.ui.WriteLine("Update Error: $_")
+                                        #** Debug $synchash.host.ui.WriteLine("Update Error: $_")
                                     }
                                 
                                 
                                 }
                                 else {  
-                                    $synchash.Host.ui.WriteLine("Adding new computer")
+                                    #** Debug $synchash.host.ui.WriteLine("Adding new computer")
                                     try {
                                         $synchash.computers.add($stat)
                                     }
                                     catch {
-                                        $synchash.Host.ui.WriteLine("add Error : $_")
+                                        #** Debug $synchash.host.ui.WriteLine("add Error : $_")
                                     }
                                 
           
                                 } 
     
                             }
-        
-                         
-  
-                            
+              
                             # $Synchash.Host.Runspace.Events.GenerateEvent("ListViewChanged", $syncHash.listView, $null, "ListView Changed")
                             #   Register-EngineEvent -SourceIdentifier "ListViewChanged" -Action {$synchash.host.ui.Writeline("Event Happened inside")} -Forward
                             #   $test = "na"
                             #  if ($syncHash.listView.items.count -gt 0) {write-host "test 321" ; $test = "test 321"; $syncHash.listView.Items.Refresh()} else {$test = "nope" ; $syncHash.listView.ItemsSource = $computers}
                         }
                        
-                        $syncHash.host.ui.Writeline("Register Events")
-                        $syncHash.host.ui.writeline("Path : $($Synchash.path)")
+                        #** debug $syncHash.host.ui.Writeline("Register Events")
+                        #** debug $syncHash.host.ui.writeline("Path : $($Synchash.path)")
                         # Register-EngineEvent -SourceIdentifier "ListViewChanged" -Action {$synchash.host.ui.Writeline("Event Happened outside")}
                         $fsw = New-Object System.IO.FileSystemWatcher $syncHash.path, "*.csv" 
-                        $event = Register-ObjectEvent -InputObject $fsw -EventName "Changed" -action { Get-LastLine($event.sourceEventArgs.fullpath); $syncHash.host.ui.Writeline("Change")}       
+                        $event = Register-ObjectEvent -InputObject $fsw -EventName "Changed" -action { Get-LastLine($event.sourceEventArgs.fullpath)}       
                            
                     })
-                $SyncHash.Host.UI.Writeline( "button")
+               
                 #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
                 #while ((Get-Job Sleeping).State -eq 'Running'){
                 
@@ -319,25 +300,23 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             Runspace   = $PowerShell.BeginInvoke()
                         }
                     ))
+                $SyncHash.Host.ui.WriteLine("Jobs : $($jobs.count)")
 
     
             })
-        $Global:timer = new-object System.Windows.Threading.DispatcherTimer
-        #Fire off every 5 seconds
-        Write-Verbose “Adding 1 second interval to timer object”
-        $timer.Interval = [TimeSpan]”0:0:1.00"
-        #Add event per tick
-        Write-Verbose "Adding Tick Event to timer object"
-        $global:timer.Add_Tick( {
-                $syncHash.wsusresults.Dispatcher.Invoke([action] { $syncHash.wsusresults.items.refresh()}, "Normal")
-            })
-        #Start timer
-        Write-Verbose “Starting Timer”
-        $timer.Start()
+       
 
         #region Window Close
+        $syncHash.btnStop.add_Click( {
+                Get-EventSubscriber | ForEach-Object { Unregister-Event $_.SubscriptionId}
+                if ($timer.IsEnabled) {
+                    $timer.stop()
+                }
+            })
         $syncHash.Window.Add_Closed( {
                 Write-Verbose 'Halt runspace cleanup job processing'
+                $SyncHash.Host.UI.Writeline( "Windows CLose")
+                $SyncHash.Host.UI.Writeline( "CLeanupflag $($jobCleanup.Flag)")
                 $jobCleanup.Flag = $False
 
                 #Stop all runspaces
@@ -513,3 +492,16 @@ function close-OrphanedRunSpaces() {
     Get-Runspace
 }
 
+<# 
+$status = @("Search", "Catalog", "Download", "Install", "Reboot")
+1..100 | % {
+    $s = "" | Select Computer, Action, Time, Progress, Description
+    $s.Computer = "Computer-$(get-random -Maximum 25)"
+    $s.Action = $status[$(get-random -Maximum 4)]
+    $s.Time = get-date -f "hh:mm:ss"
+    $s.Progress = Get-Random -Maximum 100
+    $s.Description = "Test - $_"
+    ($s |  ConvertTo-Csv -NoTypeInformation -Delimiter ";"   | % { $_.replace("""", '').replace(",", ";").replace("Computer;Action;Time;Progress;Description `n", "")})[1] | Out-File ".\test.csv" -Append  
+    Start-Sleep -Milliseconds (Get-Random -Maximum 1000)
+
+} #>
