@@ -82,16 +82,16 @@ $psCmd = [PowerShell]::Create().AddScript({
 
 </Window>
 "@
-
+        [void][System.Reflection.Assembly]::LoadWithPartialName('presentationframework')
+        [System.Reflection.Assembly]::LoadWithPartialName("WindowsFormsIntegration")
+        [void][System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms")
     $reader=(New-Object System.Xml.XmlNodeReader $xaml)
     $syncHash.Window=[Windows.Markup.XamlReader]::Load( $reader )
 	$form=[Windows.Markup.XamlReader]::Load( $reader )
 
 	$syncHash.Host = $Host
 
-    [void][System.Reflection.Assembly]::LoadWithPartialName('presentationframework')
-	[System.Reflection.Assembly]::LoadWithPartialName("WindowsFormsIntegration")
-	[void][System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms")
+    
 
 	#$inputXML = $inputXML -replace 'mc:Ignorable="d"','' -replace "x:N",'N' -replace '^<Win.*', '<Window'
     [xml]$XAML = $xaml
