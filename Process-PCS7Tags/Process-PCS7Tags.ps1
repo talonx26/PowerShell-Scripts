@@ -4,50 +4,51 @@ class wwStringTag
     [string]$TagName
     [string]$Description
     [string]$IOServerComputerName
-    static [string]$IOServerAppName = "FSGateway"
+    [string]$IOServerAppName = "FSGateway"
     [string]$TopicName
     [string]$ItemName
-    static[string]$AcquisitionType = "IOServer"
+    [string]$AcquisitionType = "IOServer"
     [ValidateSet("Cyclic", "Delta")][string]$StorageType
-    [string]$AcquisitionRate 
-    [string]$TimeDeadBand
+    [int]$AcquisitionRate 
+    [int]$TimeDeadBand
     [string]$SamplesInAI
-    [string]$MaxLength 
+    [int]$MaxLength 
     [string]$Format = "ASCII"
     [string]$InitialValue 
-    [string]$CurrentEditor
+    [int]$CurrentEditor
     [ValidateSet("Yes", "No")][string]$ServerTimeStamp
 }
 
 class wwAnalogTag 
 {
     [string]$TagName
-    [string]$Description
+    [string]$Description = " "
     [string]$IOServerComputerName
-    static [string]$IOServerAppName = "FSGateway"
+    [string]$IOServerAppName = "FSGateway"
     [string]$TopicName
     [string]$ItemName
-    static[string]$AcquisitionType = "IOServer"
+    [string]$AcquisitionType = "IOServer"
     [ValidateSet("Cyclic", "Delta")][string]$StorageType
-    [string]$AcquisitionRate 
-    [string]$StorageRate
-    [string]$TimeDeadBand
-    [string]$SamplesInAI
+    [int]$AcquisitionRate 
+    [int]$StorageRate = 1000
+    [int]$TimeDeadBand
+    [int]$SamplesInAI
     [string]$AIMode = "All"
-    [string]$EngUnits
-    [string]$MinEU
-    [string]$MinRaw
-    [string]$MaxRaw
-    [string]$Scaling
-    [string]$RawType
-    [string]$IntegerSize
+    [string]$EngUnits = "None"
+    [int]$MinEU
+    [int]$MaxEU
+    [int]$MinRaw
+    [int]$MaxRaw
+    [string]$Scaling = "None"
+    [string]$RawType = "MSFloat"
+    [int]$IntegerSize
     [string]$Sign
     [double]$ValueDeadband
-    [string]$InitialValue 
-    [string]$CurrentEditor
-    [string]$RateDeadBand
-    [ValidateSet("Linear", "Stair Step", "System Default" )][string]$InterpolationType
-    [string]$RolloverValue
+    [int]$InitialValue 
+    [int]$CurrentEditor
+    [int]$RateDeadBand
+    [ValidateSet("Linear", "Stair Step", "System Default" )][string]$InterpolationType = "System Default"
+    [int]$RolloverValue
     [ValidateSet("Yes", "No")][string]$ServerTimeStamp = "No"
     [string]$DeadBandType = "TimeValue"
 
@@ -58,78 +59,153 @@ class wwDescreteTag
     [string]$TagName
     [string]$Description
     [string]$IOServerComputerName
-    static [string]$IOServerAppName = "FSGateway"
+    [string]$IOServerAppName = "FSGateway"
     [string]$TopicName
     [string]$ItemName
-    static[string]$AcquisitionType = "IOServer"
+    [string]$AcquisitionType = "IOServer"
     [ValidateSet("Cyclic", "Delta")][string]$StorageType
-    [string]$AcquisitionRate 
-    [string]$TimeDeadBand
-    [string]$SamplesInAI
+    [int]$AcquisitionRate 
+    [int]$TimeDeadBand
+    [int]$SamplesInAI
     [string]$AIMode = "All" 
     [string]$Message0
     [string]$Message1
-    [string]$InitialValue 
-    [string]$CurrentEditor
+    [int]$InitialValue 
+    [int]$CurrentEditor
     [ValidateSet("Yes", "No")][string]$ServerTimeStamp = "No"
 
 }
-$PCS7System = "wpcs7lj005"
-$TopicName = "M111H05"
-$file = ".\Data\WPCS7LJ005 - Tag Export.txt"
-$importTags = import-csv $file -Delimiter "`t" -Encoding "UTF7"
-$wwAnalogTags = @()
-$wwDescreteTags = @()
-Foreach ($Tag in $importTags)
+
+
+<#
+.SYNOPSIS
+Convert PCS7 Tag Export to WonderWare Format
+
+.DESCRIPTION
+Convert PCS7 Tag Export to WonderWare Format
+
+.PARAMETER PCS7
+Name of PCS7 System
+
+.PARAMETER TopicName
+WonderWare Topic Name
+
+.PARAMETER ImportTagFile
+Full path or Relative path to the import file from PCS7
+
+.PARAMETER ExportTagFile
+Full path or Relative path to the export file from WonderWare
+
+.EXAMPLE
+ConvertTo-WonderWareTags -PCS7 "WCPS7LJ005" -TopicName "TopicOne" -ImportTagFile .\Import.txt -ExportTagFile .\Export.txt
+
+.NOTES
+General notes
+#>
+function ConvertTo-WonderWareTags
 {
-    switch ($Tag.'Tag Type')
+    [CmdletBinding()]
+    [Alias()]
+    [OutputType([int])]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 0)]
+        [string]$PCS7,
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 1)]
+        [string]$TopicName,
+        # Param2 help description
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 2)]
+        [string]$ImportTagFile,
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 3)]
+        [string]$ExportTagFile
+    )
+
+    Begin
     {
-        'Binary'
-        {
-            #Create New object of Digital Wonderware Tag
-            $ww = new-object wwDescreteTag
-            $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/MonDigital.Out#Value", ".Out").Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV")
-           
-            $ww.Description = $Tag.Comment
-            $ww.IOServerComputerName = $PCS7System
-            $ww.TopicName = "OPC_$TopicName"
-            $ww.ItemName = $tag.'Tag name'
-            switch ($tag.'Acquisition type')
-            {
-                "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
-                "After every change" { $ww.StorageType = "Delta"}
-                Default { $ww.StorageType = "UNKNOWN"}
-            }
-            
-            #Add Tag to Descrete collection
-            $wwDescreteTags += $ww
-        }
-
-        'Analog'
-        {
-            #Create New object of Analog Wonderware Tag
-            $ww = new-object wwAnalogTag
-            $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV")
-            $ww.Description = $Tag.Comment
-            $ww.IOServerComputerName = $PCS7System
-            $ww.TopicName = "OPC_$TopicName"
-            $ww.ItemName = $tag.'Tag name'
-            switch ($tag.'Acquisition type')
-            {
-                "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
-                "After every change" { $ww.StorageType = "Delta"}
-                Default { $ww.StorageType = "UNKNOWN"}
-            }
-            $ww.EngUnits = $tag.Unit
-
-            #Add Tag to Analog collection
-            $wwAnalogTags += $ww
-        }
-
-
+        $wwAnalogTags = @()
+        $wwDescreteTags = @()
+        $importTags = import-csv $ImportTagFile -Delimiter "`t" -Encoding "UTF7"
     }
+    Process
+    {
+        Foreach ($Tag in $importTags)
+        {
+            switch ($Tag.'Tag Type')
+            {
+                'Binary'
+                {
+                    #Create New object of Digital Wonderware Tag
+                    $ww = new-object wwDescreteTag
+                    $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/MonDigital.Out#Value", ".Out").Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV")
+           
+                    $ww.Description = $Tag.Comment
+                    $ww.IOServerComputerName = $PCS7
+                    $ww.TopicName = "OPC_$TopicName"
+                    $ww.ItemName = $tag.'Tag name'
+                    switch ($tag.'Acquisition type')
+                    {
+                        "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
+                        "After every change" { $ww.StorageType = "Delta"}
+                        Default { $ww.StorageType = "UNKNOWN"}
+                    }
+            
+                    #Add Tag to Descrete collection
+                    $wwDescreteTags += $ww
+                }
+
+                'Analog'
+                {
+                    #Create New object of Analog Wonderware Tag
+                    $ww = new-object wwAnalogTag
+                    $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV")
+                    $ww.Description = $Tag.Comment
+                    $ww.IOServerComputerName = $PCS7
+                    $ww.TopicName = "OPC_$TopicName"
+                    $ww.ItemName = $tag.'Tag name'
+                    switch ($tag.'Acquisition type')
+                    {
+                        "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
+                        "After every change" { $ww.StorageType = "Delta"}
+                        Default { $ww.StorageType = "UNKNOWN"}
+                    }
+                    if ($tag.Unit.trim() -ne '' -and $tag.unit.Trim() -ne "Perry")
+                    {$ww.EngUnits = $tag.Unit }
+             
+
+                    #Add Tag to Analog collection
+                    $wwAnalogTags += $ww
+                }
+
+
+            }
      
+        }
+    }
+    End
+    {
+        ":(Mode)update	" | out-file  $ExportTagFile -Force
+        ":(AnalogTag)TagName	Description	IOServerComputerName	IOServerAppName	TopicName	ItemName	AcquisitionType	StorageType	AcquisitionRate	StorageRate	TimeDeadband	SamplesInAI	AIMode	EngUnits	MinEU	MaxEU	MinRaw	MaxRaw	Scaling	RawType	IntegerSize	Sign	ValueDeadband	InitialValue	CurrentEditor	RateDeadband	InterpolationType	RolloverValue	ServerTimeStamp	DeadbandType" | out-file  $ExportTagFile -Append   
+        $wwAnalogTags | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | % { $_.replace("""", '')} | Select-object -skip 1 | Out-File $ExportTagFile -Append
+        ":(DiscreteTag)TagName	Description	IOServerComputerName	IOServerAppName	TopicName	ItemName	AcquisitionType	StorageType	AcquisitionRate	TimeDeadband	SamplesInAI	AIMode	Message0	Message1	InitialValue	CurrentEditor	ServerTimeStamp" | out-file  $ExportTagFile -Append
+        $wwDescreteTags | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | % { $_.replace("""", '')} |  Select-object -skip 1 | Out-File $ExportTagFile -Append
+    }
 }
 
-$wwDescreteTags | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | % { $_.replace("""", '')} | Out-File .\Data\descrete-out.txt
-$wwAnalogTags | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | % { $_.replace("""", '')} | Out-File .\Data\analog-out.txt
+
+
+$PCS7 = "wpcs7lj005"
+$TopicName = "M111H05"
+$file = ".\Data\WPCS7LJ005 - Tag Export.txt"
+
+
+
+

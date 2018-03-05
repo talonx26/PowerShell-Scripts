@@ -131,9 +131,12 @@ $psCmd = [PowerShell]::Create().AddScript( {
         $newRunspace.SessionStateProxy.SetVariable("synchash", $synchash)
         $jobCleanup.PowerShell = [PowerShell]::Create().AddScript( {
                 #Routine to handle completed runspaces
-                Do {
-                    Foreach ($runspace in $jobs) {
-                        If ($runspace.Runspace.isCompleted) {
+                Do
+                {
+                    Foreach ($runspace in $jobs)
+                    {
+                        If ($runspace.Runspace.isCompleted)
+                        {
                             [void]$runspace.powershell.EndInvoke($runspace.Runspace)
                             $runspace.powershell.dispose()
                             $runspace.Runspace = $null
@@ -157,7 +160,8 @@ $psCmd = [PowerShell]::Create().AddScript( {
 
         $syncHash.txtDataFolder.Add_LostFocus( {
                
-                if (Test-Path  $syncHash.txtDataFolder.text) {
+                if (Test-Path  $syncHash.txtDataFolder.text)
+                {
                     $syncHash.btnStart.Dispatcher.Invoke([action] {$syncHash.btnStart.IsEnabled = $True}, "Normal")
                 }
                 else
@@ -167,8 +171,9 @@ $psCmd = [PowerShell]::Create().AddScript( {
         $syncHash.btnStart.Add_Click( {
                 $Global:timer = new-object System.Windows.Threading.DispatcherTimer
                 #Fire off every 5 seconds
+                
                 Write-Verbose “Adding 1 second interval to timer object”
-                $timer.Interval = [TimeSpan]”0:0:1.00"
+                $timer.Interval = [TimeSpan]"0:0:1.00"
                 #Add event per tick
                 Write-Verbose "Adding Tick Event to timer object"
                 $global:timer.Add_Tick( {
@@ -187,15 +192,28 @@ $psCmd = [PowerShell]::Create().AddScript( {
                 $newRunspace.Open()
                 $newRunspace.SessionStateProxy.SetVariable("SyncHash", $SyncHash)
                 $PowerShell = [PowerShell]::Create().AddScript( {
+                        Param($computers)    
                         Get-EventSubscriber | ForEach-Object { Unregister-Event $_.SubscriptionId}
                         #** Debug $synchash.host.ui.Writeline("Click Runspace")
                         #** Debug $synchash.host.ui.Writeline("Runspace PID $PID")
                         #** Debug $synchash.host.ui.WriteLine("Synced: `n $($synchash.computers.IsSynchronized)")
-                        function Get-LastLine {
+                        $syncHash.Window.Dispatcher.Invoke([action] {$syncHash.computers.Add($syncHash.stat)}, "Normal")
+                        function Test-dipatch
+                        {
+                            $syncHash.Host.ui.WriteLine("Test")
+                            $syncHash.stat.Computer = "TestInstall"
+                            $syncHash.Window.Dispatcher.Invoke([action] {$syncHash.computers.add($syncHash.stat)}, "Normal")
+                        }
+                        Test-dipatch
+                        function Get-LastLine
+                        {
                             [cmdletBinding()]
                             Param($path)
-                            #** Debug $synchash.host.ui.WriteLine("Get-LastLine")
-                            #** Debug $synchash.host.ui.WriteLine("Enter Invoke")    
+                            Wait-Debugger
+                            $synchash.host.ui.WriteLine("Get-LastLine")
+                            #$syncHash.Window.Dispatcher.Invoke([action] {$syncHash.computers.Add($syncHash.stat)}, "Normal")
+
+                            $synchash.host.ui.WriteLine("Enter Invoke")    
                             $lines = Get-Content $path
                             $lines = $lines.split("`n")
                                     
@@ -211,14 +229,17 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             $stat | Add-Member -Type NoteProperty -Name Description -Value $line[3]
                             #** Debug $synchash.host.ui.writeline("Lines : $line[3]")
                             $progress = 0
-                            if ($line[3] -ilike "*Total Progress*") {
+                            if ($line[3] -ilike "*Total Progress*")
+                            {
                                 $progress = $line[3].Substring($line[3].IndexOf("Total Progress"))
                                
                                 #** Debug $synchash.host.ui.writeline("Progress : $progress")
-                                if ($line[3].Substring($line[3].IndexOf("Total Progress")) -match "\d{1,3}") {
+                                if ($line[3].Substring($line[3].IndexOf("Total Progress")) -match "\d{1,3}")
+                                {
                                     $progress = $Matches[0]
                                 }
-                                else {
+                                else
+                                {
                                     $progress = 0
                                 }
                             }
@@ -229,44 +250,54 @@ $psCmd = [PowerShell]::Create().AddScript( {
                             #** Debug $synchash.host.ui.WriteLine(" $PID Computer Count : $($synchash.computers.count)")
                             #$synchash.Window.dispatcher.invoke([action] {$synchash.computers.add($stat)}, "Normal")
                             
-                            if ($synchash.computers.count -eq 0 ) {
+                            if ($synchash.computers.count -eq 0 )
+                            {
                                 #Write-host "Zero"
                                 #** Debug $synchash.host.ui.WriteLine("$PID Computer Count :initializing")
                                 
-                                try {
+                                try
+                                {
                                     # $synchash.computers.add($stat)
                                     $global:synchash.computers.add($stat)
                                 }
-                                catch {
+                                catch
+                                {
                                     #** Debug $synchash.host.ui.WriteLine("$PID Init Error: $_")
                                 }
                               
                                 #** Debug $synchash.host.ui.WriteLine("$PID after Init Computer Count : $($synchash.computers.count)")
                             }
                             
-                            else {
-                                if ($synchash.computers.computer.Contains($stat.computer)) {
+                            else
+                            {
+                                if ($synchash.computers.computer.Contains($stat.computer))
+                                {
                                     #** Debug $synchash.host.ui.WriteLine("$PID Found Computer")
                                     $index = $synchash.computers.computer.IndexOf($stat.computer)
-                                    try {
+                                    try
+                                    {
                                         #** Debug $synchash.host.ui.WriteLine("Updating Computer")
                                         #** Debug $synchash.host.ui.WriteLine("Index :$index")
                                         
                                         $synchash.computers[$index] = $stat
                                             
                                     }
-                                    catch {
+                                    catch
+                                    {
                                         #** Debug $synchash.host.ui.WriteLine("Update Error: $_")
                                     }
                                 
                                 
                                 }
-                                else {  
+                                else
+                                {  
                                     #** Debug $synchash.host.ui.WriteLine("Adding new computer")
-                                    try {
+                                    try
+                                    {
                                         $synchash.computers.add($stat)
                                     }
-                                    catch {
+                                    catch
+                                    {
                                         #** Debug $synchash.host.ui.WriteLine("add Error : $_")
                                     }
                                 
@@ -285,10 +316,12 @@ $psCmd = [PowerShell]::Create().AddScript( {
                         #** debug $syncHash.host.ui.writeline("Path : $($Synchash.path)")
                         # Register-EngineEvent -SourceIdentifier "ListViewChanged" -Action {$synchash.host.ui.Writeline("Event Happened outside")}
                         $fsw = New-Object System.IO.FileSystemWatcher $syncHash.path, "*.csv" 
-                        $event = Register-ObjectEvent -InputObject $fsw -EventName "Changed" -action { Get-LastLine($event.sourceEventArgs.fullpath)}       
+                        $event = Register-ObjectEvent -InputObject $fsw -EventName "Changed" -action {
+                            $syncHash.host.ui.writeline("PID $PID"); 
+                            Get-LastLine($event.sourceEventArgs.fullpath)}       
                            
-                    })
-               
+                    }).addargument($synchash.computers)
+              
                 #Start-Job -Name Sleeping -ScriptBlock {start-sleep 5}
                 #while ((Get-Job Sleeping).State -eq 'Running'){
                 
@@ -309,7 +342,8 @@ $psCmd = [PowerShell]::Create().AddScript( {
         #region Window Close
         $syncHash.btnStop.add_Click( {
                 Get-EventSubscriber | ForEach-Object { Unregister-Event $_.SubscriptionId}
-                if ($timer.IsEnabled) {
+                if ($timer.IsEnabled)
+                {
                     $timer.stop()
                 }
             })
@@ -328,10 +362,16 @@ $psCmd = [PowerShell]::Create().AddScript( {
         #$x.Host.Runspace.Events.GenerateEvent( "TestClicked", $x.test, $null, "test event")
 
         #$syncHash.Window.Activate()
+        # $Binding = New-Object System.Windows.Data.Binding 
+        #$Binding.Mode = [System.Windows.Data.BindingMode]::OneWay
+        #$syncHash.WSUSResults.DataContext = $computers
+        #[void][System.Windows.Data.BindingOperations]::SetBinding($syncHash.WSUSResults, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $Binding)
+
         $syncHash.Window.ShowDialog() | Out-Null
         $syncHash.Error = $Error
     })
 $psCmd.Runspace = $newRunspace
+
 #Add-Type -AssemblyName System.windows.data.Binding
 #[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Data.Binding')
 #$Binding = New-Object System.Windows.Data.Binding 
@@ -343,7 +383,7 @@ $psCmd.Runspace = $newRunspace
 Write-host "to run display your UI, run:  " -NoNewline
 write-host -foregroundcolor Green '$data = $psCmd.BeginInvoke()'
 $data = $psCmd.BeginInvoke()
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 1000
 $synchash.Window.Dispatcher.Invoke([action] {$synchash.txtDataFolder.text = $PSScriptRoot}, "Normal")
 #$syncHash.txtCurrDir.Dispatcher.Invoke([action] { $syncHash.txtCurrDir.text = $syncHash.path}, "Normal")
 $syncHash.Window.Dispatcher.Invoke([action] {$syncHash.WSUSResults.ItemsSource = $computers}, "Normal")
@@ -359,7 +399,8 @@ $syncHash.txtInput.Add_LostFocus({
 
 
 
-function Get-SyncHashValue {
+function Get-SyncHashValue
+{
     [CmdletBinding()]
     param (
         #  [parameter(Mandatory=$true)]
@@ -370,15 +411,18 @@ function Get-SyncHashValue {
         $Property
     )
 
-    if ($TempVar) {
+    if ($TempVar)
+    {
         Remove-Variable TempVar -Scope global
     }
 
-    if ($Property) {
+    if ($Property)
+    {
 
         $SyncHash.$Object.Dispatcher.Invoke([System.Action] {Set-Variable -Name TempVar -Value $($SyncHash.$Object.$Property) -Scope global}, "Normal")
     }
-    else {
+    else
+    {
         $SyncHash.Host.UI.writeline("Object")
         $SyncHash.$Object.Dispatcher.Invoke([System.Action] {Set-Variable -Name TempVar -Value $($SyncHash.$Object) -Scope global}, "Normal")
     }
@@ -386,7 +430,8 @@ function Get-SyncHashValue {
     Return $TempVar
 }
 
-function Get-LastLine {
+function Get-LastLine
+{
     [cmdletBinding()]
     Param($path)
    
@@ -421,44 +466,54 @@ function Get-LastLine {
     $synchash.Host.ui.WriteLine(" $PID Computer Count : $($synchash.computers.count)")
     #$synchash.Window.dispatcher.invoke([action] {$synchash.computers.add($stat)}, "Normal")
                             
-    if ($synchash.computers.count -eq 0 ) {
+    if ($synchash.computers.count -eq 0 )
+    {
         #Write-host "Zero"
         $synchash.Host.ui.WriteLine("$PID Computer Count :initializing")
                                 
-        try {
+        try
+        {
             # $synchash.computers.add($stat)
             $global:synchash.computers.add($stat)
         }
-        catch {
+        catch
+        {
             $synchash.Host.ui.WriteLine("$PID Init Error: $_")
         }
                               
         $synchash.Host.ui.WriteLine("$PID after Init Computer Count : $($synchash.computers.count)")
     }
                             
-    else {
-        if ($synchash.computers.computer.Contains($stat.computer)) {
+    else
+    {
+        if ($synchash.computers.computer.Contains($stat.computer))
+        {
             $synchash.Host.ui.WriteLine("$PID Found Computer")
             $index = $synchash.computers.computer.IndexOf($stat.computer)
-            try {
+            try
+            {
                 $synchash.Host.ui.WriteLine("Updating Computer")
                 $synchash.Host.ui.WriteLine("Index :$index")
                                         
                 $synchash.computers[$index] = $stat
                                             
             }
-            catch {
+            catch
+            {
                 $synchash.Host.ui.WriteLine("Update Error: $_")
             }
                                 
                                 
         }
-        else {  
+        else
+        {  
             $synchash.Host.ui.WriteLine("Adding new computer")
-            try {
+            try
+            {
                 $synchash.computers.add($stat)
             }
-            catch {
+            catch
+            {
                 $synchash.Host.ui.WriteLine("add Error : $_")
             }
                                 
@@ -475,16 +530,19 @@ function Get-LastLine {
 Register-EngineEvent -SourceIdentifier "ListViewChanged" -Action {$synchash.host.ui.Writeline("Event Happened outside"); 
     $synchash.host.UI.writeline(" WSUSResults1: ")  
     
-    try {
+    try
+    {
         #  $global:synchash.Window.dispatcher.invoke([action] {$global:synchash.WSUSResults.items.Refresh() }, "Normal")
     }
-    catch {
+    catch
+    {
         $synchash.host.UI.writeline("Event Error: $_") 
     }  
     
 }
 
-function close-OrphanedRunSpaces() {
+function close-OrphanedRunSpaces()
+{
     Get-Runspace
     Write-Host "closing"
     Get-Runspace | ? { $_.RunspaceAvailability -eq "Available"} | % { $_.close(); $_.Dispose()}
@@ -492,16 +550,16 @@ function close-OrphanedRunSpaces() {
     Get-Runspace
 }
 
-<# 
+<#
 $status = @("Search", "Catalog", "Download", "Install", "Reboot")
 1..100 | % {
-    $s = "" | Select Computer, Action, Time, Progress, Description
+    $s = "" | Select Computer, Action, Time,  Description
     $s.Computer = "Computer-$(get-random -Maximum 25)"
     $s.Action = $status[$(get-random -Maximum 4)]
     $s.Time = get-date -f "hh:mm:ss"
-    $s.Progress = Get-Random -Maximum 100
-    $s.Description = "Test - $_"
-    ($s |  ConvertTo-Csv -NoTypeInformation -Delimiter ";"   | % { $_.replace("""", '').replace(",", ";").replace("Computer;Action;Time;Progress;Description `n", "")})[1] | Out-File ".\test.csv" -Append  
+    $Progress = Get-Random -Maximum 100
+    $s.Description = "Test - $_ Total Progress($progress%)"
+    ($s |  ConvertTo-Csv -NoTypeInformation -Delimiter ";"   | % { $_.replace("""", '').replace(",", ";").replace("Computer;Action;Time;Progress;Description `n", "")})[1] | Out-File ".\test data\test.csv" -Append  
     Start-Sleep -Milliseconds (Get-Random -Maximum 1000)
 
 } #>
