@@ -263,3 +263,5 @@ GetLicenseScan/*.dll
 Process-PCS7Tags/Data/*.txt
 WSUSInstallMonitorWPF/Test Data/*.CSV
 WSUSInstallMonitorWPF/Test Data/ELW2K8ECM01.CSV
+GetLicenseScan/TwainDotNet.XML
+GetLicenseScan/log4net.xml
