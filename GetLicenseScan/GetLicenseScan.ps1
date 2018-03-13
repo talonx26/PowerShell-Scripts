@@ -6,7 +6,9 @@ function get-LicenseScan
     [CmdletBinding()]
     Param
     (
-        
+        [Parameter(Mandatory = $false, 
+            Position = 0)]
+        $OutDirectory = "c:\scan"
     )
 
     Begin
@@ -22,7 +24,7 @@ function get-LicenseScan
         # $wiaFormatTiff = "{B96B3CB1-0728-11D3-9D7B-0000F81EF32E}"
         $scan = 0
         $problemScan = @()
-        
+        $MorePages = $true
     }
     Process
     { 
@@ -72,7 +74,7 @@ function get-LicenseScan
                     Write-Verbose "Barcode Count Before: $($barcodes.count)"
                     $barcodes = Read-Barcode -Image $BarCodeimage
                     Write-Verbose "Barcodes :"
-                    Write-Verbose $barcodes
+                   
                     Write-Verbose "Barcode Count after: $($barcodes.count)"
                     $filename = ""
                     $directory = ""
