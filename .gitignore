@@ -262,4 +262,9 @@ __pycache__/
 Process-PCS7Tags/Data/*.txt
 WSUSInstallMonitorWPF/Test Data/*.CSV
 WSUSInstallMonitorWPF/Test Data/ELW2K8ECM01.CSV
+<<<<<<< HEAD
 GetLicenseScan/*.dll
+=======
+GetLicenseScan/TwainDotNet.XML
+GetLicenseScan/log4net.xml
+>>>>>>> 64543e5cf4d8b6d6dff4776d83523198a213ec51
