@@ -11,34 +11,18 @@ function get-LicenseScan
 
     Begin
     { 
-<<<<<<< HEAD
        
         [void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
         add-type -Path .\Interop.WIA.dll
-=======
-        [void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
-        $refs = @(
-            ".\BarcodeImaging.dll"
-
-        ) 
-
-
-        add-type -path $refs
->>>>>>> c253228c56106aca04d5affe33e682c75fb04e9c
         $deviceManager = New-Object -ComObject WIA.DeviceManager
         $device = $deviceManager.DeviceInfos.item(1).connect()
         # $wiaFormatPNG = "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"
         $wiaFormatJPEG = "{B96B3CAE-0728-11D3-9D7B-0000F81EF32E}"
         $barcodes = New-Object System.Collections.ArrayList
-<<<<<<< HEAD
         # $wiaFormatTiff = "{B96B3CB1-0728-11D3-9D7B-0000F81EF32E}"
         $scan = 0
         $problemScan = @()
         
-=======
-        $imageProcess = new-object -ComObject WIA.ImageProcess
-        $resizeImageProcess = new-object -ComObject WIA.ImageProcess
->>>>>>> c253228c56106aca04d5affe33e682c75fb04e9c
     }
     Process
     { 
@@ -47,7 +31,7 @@ function get-LicenseScan
         { 
             $item.Properties("Vertical Resolution").Value = 600
             $item.Properties("Horizontal Resolution").value = 600
-<<<<<<< HEAD
+
          
             do
             {
@@ -105,11 +89,7 @@ function get-LicenseScan
                         {
                             $directory = $code
                             "Dir : $directory"
-                            <#      if (!(test-path $OutDirectory\$directory))
-                            {
-                                new-item -ItemType Directory -Path $OutDirectory\$directory 
-
-                            } #>
+                           
                         }            
                     }
                     If ($barcodes.count -gt 2)
@@ -132,7 +112,7 @@ function get-LicenseScan
                         
                             $directory = "Problem\$directory"
                             
-                            While (Test-Path ("$OutDirectory\$directory\$filename.jpg") )
+                            While (Test-Path ("$OutDirectory\$directory\$filename.jpg"))
                             {
                                 $index++
                                 $fileName = "No Serial-Scan-$index"
@@ -168,31 +148,9 @@ function get-LicenseScan
                     Write-Verbose "Saving File : $OutDirectory\$directory\$filename.jpg"
                     $saveimage.SaveFile("$OutDirectory\$directory\$filename.jpg")  
                 }
-
-            } while ($MorePages)
-           
-=======
-            
-            #  $item.Properties("Format") = $wiaFormatJPEG
-            #  $item.Properties("Filename Extension") = "JPG"
-            $image = $item.Transfer($wiaFormatJPEG) 
->>>>>>> c253228c56106aca04d5affe33e682c75fb04e9c
-        } 
-        $resizeImageProcess.Filters.Add($resizeImageProcess.FilterInfos.Item("Scale").FilterID)
-        $imageProcess.Filters.Add($imageProcess.FilterInfos.Item("Convert").FilterID)
-        $imageProcess.Filters.Item(1).Properties.Item("FormatID").Value = $wiaFormatJPEG
-        $imageProcess.Filters.Item(1).Properties.Item("Quality").Value = 50
-        $Saveimage = $imageProcess.Apply($image)
-        $resizeImageProcess.Filters.Item(1).Properties.Item("MaximumWidth").Value = [string]($image.Width * 2)
-        $resizeImageProcess.Filters.Item(1).Properties.Item("MaximumHeight").Value = [string]($image.height * 2)
-        $image = $resizeImageProcess.Apply($image)
         
-        #$file = "C:\Scan\temp01.$($image.fileExtension)"
-        $Imageconverter = New-Object System.Drawing.ImageConverter
-        [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($image.FileData.BinaryData)
-
-<<<<<<< HEAD
-        
+            }while ($MorePages)
+        }
     }
     End
     {
@@ -202,9 +160,9 @@ function get-LicenseScan
             $problemScan
         }
     }
+
+
 }
-
-
 
 
 function Resize-Image
@@ -308,52 +266,125 @@ function Read-Barcode
             Write-Verbose "Not enough Barcodes detected. Increasing picture size and rescanning"
             $barcodes = New-Object System.Collections.ArrayList;
             $im = Resize-Image -Image $image -scale 2
+            if ($im.count -eq 2) { $im = $im[1]}
             [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($im.FileData.BinaryData)
             [barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
             $im = $null
             Remove-Variable im
         }
-        
-=======
-        #$image = $null
-        $barcodes = New-Object System.Collections.ArrayList; 
-        $Bitmap.Width
-        $Bitmap.Height
-        [barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
-        $filename = ""
-        $directory = ""
-        foreach ($code in $barcodes)
-        {
-            if ($code.StartsWith("S"))
-            {
-                $fileName = $code
-                "Filename  $filename"
-            }
-            else
-            {
-                $directory = $code
-                "Dir : $directory"
-                if (!(test-path c:\scan\$directory))
-                {
-                    new-item -ItemType Directory -Path c:\scan\$directory 
+       
 
-                }
-            }            
-        }
-
-        $saveimage.SaveFile("c:\scan\$directory\$filename.jpg") 
-
->>>>>>> c253228c56106aca04d5affe33e682c75fb04e9c
+  
         
     }
     End
     {
-<<<<<<< HEAD
         write-verbose "Exit Barcodes."
         return $barcodes
-=======
->>>>>>> c253228c56106aca04d5affe33e682c75fb04e9c
     }
 }
+
+
+function UpdateSiemensLicense
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 0)]
+        [object[]]$Images
+      
+    )
+
+    Begin
+    {
+        write-debug "Updating License's"
+        $ErrorActionPreference = "Continue"
+        #Edit to match full path and filename of where you want log file created
+        #Load SharePoint DLL's
+
+        [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
+        [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client.Runtime")
+        $weburl = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7"
+        $Context = New-Object Microsoft.SharePoint.Client.ClientContext($webUrl) 
+
+    }
+    Process
+    {
+        foreach ($image in $images)
+        {
+            $web = $Context.Web
+            $weblist = "Siemens License Tracker"
+            $Context.Load($web) 
+            $Context.ExecuteQuery() 
+
+            $list = $web.Lists.GetByTitle($weblist)
+            $Query = New-Object Microsoft.SharePoint.Client.CamlQuery
+            
+            $query.ViewXml = "<View Scope='RecursiveAll'><Query>,<Where><Eq><FieldRef Name='Serial Number'/><Value Type='Text'>$($NetWork.MAC)</Value></Eq></Where></Query></View>"
+            #[Microsoft.SharePoint.Client.CamlQuery]::CreateAllItemsQuery().Viewxml
+            $items = $list.GetItems($Query)  
+            $context.Load($items)
+            $context.ExecuteQuery()
+            If ($items.count -eq 0)
+            {
+                #Record not found.  Create initial Record
+                $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
+                $itemCreateInfo
+                $new = $list.AddItem($itemCreateInfo)
+                $new["Title"] = $network.MAC
+			
+                $new.Update()
+                $Context.ExecuteQuery()
+                #Reload Items to get new Record ID
+                $context.Load($items)
+                $context.ExecuteQuery()
+            }
+            if ($items.count -gt 0)
+            {
+                #Update Record
+                $items[0]["IP_x0020_Address"] = $Network.IP | % { $_}
+                $items[0]["SUBNET"] = $network.subnet | % { $_}
+                $items[0]["Gateway"] = $network.Gateway | % { $_}
+                $items[0]["Broadcast_x0020_IP"] = $network.BroadcastIP 
+                $items[0]["Computer"] = $ComputerID
+                $items[0]["Network_x0020_Name"] = $NetWork.Name 
+                $s = "" ; $Network.DNS | % { $s += "$_<br/>"}
+                $items[0]["DNS"] = $s
+                $s = "" ; $Network.DNSSearchSuffix | % { $s += "$_<br/>"}
+                $items[0]["DNS_x0020_Search_x0020_Suffix"] = $s
+                $ID = "" | Select Computer, ID
+                $ID.Computer = $ComputerInfo.Computer
+                $ID.ID = $items[0]["ID"]
+                $NetworkIDs += $ID
+                $items[0].update()
+                $context.ExecuteQuery()
+            }
+            Else
+            {
+                # Record not found and unable to add new Record for some reason.  
+                $ID = "" | Select Computer, ID
+                $ID.Computer = $ComputerInfo.Computer.ToString()
+                $ID.ID = "Not Found"
+                $NetworkIDs += $ID
+            }
+
+	   
+        }
+		
+
+    }
+	   
+   
+    End
+    {
+	       
+        return $NetWorkIDs
+    }
+}
+
 
 get-licensescan -verbose
