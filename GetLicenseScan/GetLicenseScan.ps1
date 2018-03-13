@@ -14,8 +14,9 @@ function get-LicenseScan
 
     Begin
     { 
-        [void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
        
+        [void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
+        add-type -Path .\Interop.WIA.dll
         $deviceManager = New-Object -ComObject WIA.DeviceManager
         $device = $deviceManager.DeviceInfos.item(1).connect()
         # $wiaFormatPNG = "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"
@@ -24,9 +25,11 @@ function get-LicenseScan
         # $wiaFormatTiff = "{B96B3CB1-0728-11D3-9D7B-0000F81EF32E}"
         $scan = 0
         $problemScan = @()
+        
     }
     Process
     { 
+        Write-Verbose "Starting"
         foreach ($item in $device.Items)
         { 
             $MorePages = $true
@@ -38,25 +41,39 @@ function get-LicenseScan
                 Try { $image = $item.Transfer($wiaFormatJPEG)  }
                 Catch 
                 {
+                    if ($_.exception -ilike ("*no documents left*") -and $scan -eq 0)
+                    {
+                        #There have been no scans so ADF was empty to begin with
+                        Write-host "No documents in Scanner. Please check and restart script"
+                    }
+                    elseif (!($_.exception -ilike ("*no documents left*")) -and $scan -eq 0)
+                    {
+                        #This should catch error if Scanner doesn't start. 
+                        Write-host "If Scanner did not run try restarting scanner Scan : $Scan"
+                    }
+                   
                     $MorePages = $false
+                  
+                   
                 }
                 If ($MorePages)
                 {
                     $scan++
                     #Image file for saving.  Smaller File for file size
-                    $Saveimage = Resize-Image -Images $image
+                    $Saveimage = Resize-Image -Image $image
                     # Enlarge Image to send to barcode reader to increase accuracy. File stored in memory.
-                    $image = Resize-Image  -Images $image -scale 2
+                    #$BarCodeImage = New-Object 
+                    $BarCodeImage = Resize-Image  -Image $image -scale 2
         
-                    $Imageconverter = New-Object System.Drawing.ImageConverter
-                    [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($image.FileData.BinaryData)
+                    # $Imageconverter = New-Object System.Drawing.ImageConverter
+                    # [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($image.FileData.BinaryData)
 
                     #$image = $null
                     $barcodes = New-Object System.Collections.ArrayList; 
             
                     #[barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
                     Write-Verbose "Barcode Count Before: $($barcodes.count)"
-                    $barcodes = Read-Barcode -Image $image
+                    $barcodes = Read-Barcode -Image $BarCodeimage
                     Write-Verbose "Barcodes :"
                     Write-Verbose $barcodes
                     Write-Verbose "Barcode Count after: $($barcodes.count)"
@@ -97,9 +114,18 @@ function get-LicenseScan
                     {
                         If ($filename -eq "")
                         {
-                            $fileName = "No Serial -$scan.jpg"
+                            $index = 1
+                            $fileName = "No Serial-Scan-$index.jpg"
                         
-                            $directory = "$Problem\$directory"
+                            $directory = "Problem\$directory"
+                            
+                            While (Test-Path ("$OutDirectory\$directory\$filename.jpg") )
+                            {
+                                $index++
+                                $fileName = "No Serial-Scan-$index"
+                                
+                                Write-Verbose "File exists changing file name to $filename"
+                            }
                             Write-Verbose "No Serial Detected"
                             Write-Verbose "Directory : $directory"
                         }
@@ -147,50 +173,18 @@ function get-LicenseScan
     }
 }
 
-<#
-$s = New-Object -ComObject WIA.CommonDialog
 
-
-$im= $s.ShowTransfer($item,[WIA.FormatID]::wiaFormatJPEG,$false)
-get-history | { $_.commandline}
-
-
-
-$device.Properties | ft
-$item.Properties |ft
-$device.Properties | ft
-$device.WiaItem("TransferItemFlag")
-$item.properties("Item Flags")
-$item.properties("Item Flags").Type
-$im
-$im += $item.Transfer($wiaFormatJPEG)
-$item.properties("Item Flags")
-$im = @()
-$im
-$im += $item.Transfer($wiaFormatJPEG)
-$item.properties("Item Flags")
-$im += $item.Transfer($wiaFormatJPEG)
-$item.properties("Item Flags")
-$im += $item.Transfer($wiaFormatJPEG)
-$item.properties("Item Flags")
-$im += $item.Transfer($wiaFormatJPEG)
-$im | % { $_.savefile("C:\scan\scantestx$index.jpg");$index++}
-add-type -Path .\Interop.WIA.dll
-[WIA.WiaItemFlags]
-[WIA.WiaItemFlag]
-[WIA.WiaItemFlag]::TransferItemFlag
-#>
 
 
 function Resize-Image
 {
     [CmdletBinding()]
-    [OutputType([object])]
+    
     param (
         # Param1 help description
         [Parameter(Mandatory = $true, 
             Position = 0)]
-        [object[]]$Images,
+        [object]$Image,
         [Parameter(Mandatory = $false, 
             Position = 1)]
         [double]$scale = 0
@@ -199,40 +193,47 @@ function Resize-Image
     
     begin
     {   
-        $SavedImages = @()
+       
     }
     
     process
     {
-        Foreach ($image in $images)
+        
+        write-verbose "Entering Resize-Image"
+        $ImageProcess = new-object -ComObject WIA.ImageProcess
+        Write-Verbose "Before"
+        WRite-verbose "Image Width  : $($Image.Width)"
+        write-verbose "Image Height : $($Image.Height)"
+        write-verbose "Scale : $scale"
+        if ($scale -ne 0)
         {
-            $ImageProcess = new-object -ComObject WIA.ImageProcess
-            Write-Verbose "Before"
-            WRite-verbose "Image Width  : $($Image.Width)"
-            write-verbose "Image Height : $($Image.Height)"
-            if ($scale -ne 0)
-            {
-                $ImageProcess.Filters.Add($ImageProcess.FilterInfos.Item("Scale").FilterID)
-                $ImageProcess.Filters.Item(1).Properties.Item("MaximumWidth").Value = [string]($image.Width * $scale)
+            Write-Verbose "Resizing"
+            $ImageProcess.Filters.Add($ImageProcess.FilterInfos.Item("Scale").FilterID)
+            $ImageProcess.filters
+            $ImageProcess.Filters.Item(1).Properties.Item("MaximumWidth").Value = [string]($image.Width * $scale)
                 
-                $ImageProcess.Filters.Item(1).Properties.Item("MaximumHeight").Value = [string]($image.height * $scale)
-            }
-            else
-            {
-                $imageProcess.Filters.Add($imageProcess.FilterInfos.Item("Convert").FilterID)
-                $imageProcess.Filters.Item(1).Properties.Item("FormatID").Value = $wiaFormatJPEG
-                $imageProcess.Filters.Item(1).Properties.Item("Quality").Value = 50
-            }
-            
-            $Savedimages += $imageProcess.Apply($image)
-            Write-Verbose "After"
-            WRite-verbose "Image Width  : $($Image.Width)"
-            write-verbose "Image Height : $($Image.Height)"
+            $ImageProcess.Filters.Item(1).Properties.Item("MaximumHeight").Value = [string]($image.height * $scale)
+            Write-Verbose "Width : $($ImageProcess.Filters.Item(1).Properties.Item("MaximumWidth").Value)"
+            Write-Verbose "Height : $($ImageProcess.Filters.Item(1).Properties.Item("MaximumHeight").Value)"
         }
+        else
+        {
+            Write-Verbose "Converting to JPG"
+            $imageProcess.Filters.Add($imageProcess.FilterInfos.Item("Convert").FilterID)
+            $imageProcess.Filters.Item(1).Properties.Item("FormatID").Value = $wiaFormatJPEG
+            $imageProcess.Filters.Item(1).Properties.Item("Quality").Value = 50
+        }
+            
+        $SavedImages = $imageProcess.Apply($image)
+        Write-Verbose "After"
+        WRite-verbose "Image Width  : $($SavedImages.Width)"
+        write-verbose "Image Height : $($SavedImages.Height)"
+        
     }
   
     end
     {
+        write-verbose "Exiting Resize Image"
         return $SavedImages
     }
 }
@@ -245,7 +246,7 @@ function Read-Barcode
         # Param1 help description
         [Parameter(Mandatory = $true, 
             Position = 0)]
-        [object]$Image
+        [Object]$Image
     )
     
     begin
@@ -256,22 +257,26 @@ function Read-Barcode
         ) 
         add-type -path $refs
         $barcodes = New-Object System.Collections.ArrayList; 
+        if ($image.count -eq 2)
+        {$image = $image[1]}
     }
             
     process
     {
+        write-verbose "Processing Barcodes"
         $Imageconverter = New-Object System.Drawing.ImageConverter
+        write-verbose "Converting Image"
         [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($image.FileData.BinaryData)
 
         #$image = $null
         $barcodes = New-Object System.Collections.ArrayList;
-       
+        Write-verbose "Scanning for Barcodes"
         [barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
         If ($barcodes.count -lt 2)
         {
             Write-Verbose "Not enough Barcodes detected. Increasing picture size and rescanning"
             $barcodes = New-Object System.Collections.ArrayList;
-            $im = Resize-Image -Images $image -scale 2
+            $im = Resize-Image -Image $image -scale 2
             [System.Drawing.Bitmap]$Bitmap = $Imageconverter.ConvertFrom($im.FileData.BinaryData)
             [barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
             $im = $null
@@ -283,6 +288,9 @@ function Read-Barcode
     
     end
     {
+        write-verbose "Exit Barcodes."
         return $barcodes
     }
 }
+
+get-licensescan -verbose
