@@ -326,8 +326,9 @@ function UpdateSiemensLicense
             $list = $web.Lists.GetByTitle($weblist)
             $Query = New-Object Microsoft.SharePoint.Client.CamlQuery
             
-            $query.ViewXml = "<View Scope='RecursiveAll'><Query>,<Where><Eq><FieldRef Name='Serial Number'/><Value Type='Text'>$($NetWork.MAC)</Value></Eq></Where></Query></View>"
-            #[Microsoft.SharePoint.Client.CamlQuery]::CreateAllItemsQuery().Viewxml
+            $query.ViewXml = "<View Scope='RecursiveAll'><Query>,<Where><Eq><FieldRef Name='Serial_x0020_Number'/><Value Type='Text'>$($SerialNumber)</Value></Eq></Where></Query></View>"
+            
+            #$query.viewXml = [Microsoft.SharePoint.Client.CamlQuery]::CreateAllItemsQuery().Viewxml
             $items = $list.GetItems($Query)  
             $context.Load($items)
             $context.ExecuteQuery()
