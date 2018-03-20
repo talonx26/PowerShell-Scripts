@@ -15,7 +15,8 @@
 .EXAMPLE
    Another example of how to use this cmdlet
 #>
-function Get-LabPCInfo {
+function Get-LabPCInfo
+{
     [CmdletBinding()]
 	
     Param
@@ -27,23 +28,27 @@ function Get-LabPCInfo {
         [string[]]$Computers = $env:COMPUTERNAME
     )
 
-    Begin {
+    Begin
+    {
         $ComputerInfo = @()
     }
-    Process {
-        Foreach ($computer in $computers) {
-            try {
+    Process
+    {
+        Foreach ($computer in $computers)
+        {
+            try
+            {
         
                 Write-Host
                 write-host $Computer
                 write-host
                 If (-not (Test-Connection -ComputerName $computer -count 1 -ErrorAction SilentlyContinue))
-                {  throw "Can't ping $computer"}
+                {  throw "Unable to ping $computer"}
                 # Get WMI Data
                 $info = "" | Select Computer, Mfg, Model, TotalPhysicalMemory, TotalMemoryGB, BIOS, BIOSVersion, BIOSReleaseDate, SerialNumber, OS, ServicePack, OSArchitecture, OSBuildNumber, HD, Network, Software
                 $OS = Get-WmiObject win32_operatingsystem -ComputerName $Computer  -ErrorAction SilentlyContinue| select Caption, CSDVersion, OSArchitecture, Version
                 if ($os -eq $null)
-                {  throw "WMI not accessible on $computer"}
+                {  throw "Unable WMI not accessible on $computer"}
                 $computersystem = Get-WmiObject win32_computersystem -ComputerName $Computer -ErrorAction SilentlyContinue| select Name, Manufacturer, Model, TotalPhysicalMemory, @{n = "TotalMemory(GB)"; e = {[math]::Round($_.TotalPhysicalMemory / 1GB, 3)}}
                 $HDInfo = Get-WmiObject -query  "select * from win32_logicaldisk where DriveType = '3'" -ComputerName $computer -ErrorAction SilentlyContinue
                 $bios = Get-WmiObject  win32_bios -ComputerName $computer -ErrorAction SilentlyContinue | select Name, Version, ReleaseDate, SerialNumber
@@ -68,7 +73,8 @@ function Get-LabPCInfo {
 		
                 # Process HD Data
                 $HDS = @()
-                Foreach ($HD in $HDInfo) {
+                Foreach ($HD in $HDInfo)
+                {
                     $h = "" | Select VolPath, TotalSize, FreeSpace, Drive
                     $h.Drive = $HD.DeviceID.replace(":", "")
                     $h.TotalSize = $HD.Size
@@ -80,7 +86,8 @@ function Get-LabPCInfo {
                 $info.HD = $HDS
                 # Process Network Adapter Information
                 $NetworkInfo = @()
-                foreach ($Config in $configs) {
+                foreach ($Config in $configs)
+                {
                     $NetInfo = "" | Select MAC, IP, SubNet, GateWay, Name, DNS, DNSSearchSuffix, BroadcastIP, WOL
                     $NetInfo.MAC = $config.MACAddress
                     $netinfo.Name = $adapters[$configs.MACAddress.IndexOf($config.MACAddress)].NetConnectionID
@@ -107,17 +114,20 @@ function Get-LabPCInfo {
                 Remove-Variable bios
                 $computerinfo += $info
             }
-            catch {
+            catch
+            {
                 $info = "" | Select Computer, Mfg, Model, TotalPhysicalMemory, TotalMemoryGB, BIOS, BIOSVersion, BIOSReleaseDate, SerialNumber, OS, ServicePack, OSArchitecture, OSBuildNumber
+                # $_ | select *
                 $info.computer = $Computer
-                $info.Model = "Unable to connect to WMI"
+                $info.Model = $_.Exception.Message
           
          
                 $computerinfo += $info
             }
         }
     }
-    End {
+    End
+    {
         return $ComputerInfo
     }
 }
@@ -135,7 +145,8 @@ function Get-LabPCInfo {
 .EXAMPLE
    Another example of how to use this cmdlet
 #>
-function Update-SPLabPCInfo {
+function Update-SPLabPCInfo
+{
     [CmdletBinding()]
    
     Param
@@ -147,7 +158,8 @@ function Update-SPLabPCInfo {
         [object[]]$Computers
     )
 
-    Begin {
+    Begin
+    {
         $ErrorActionPreference = "stop"
         #Edit to match full path and filename of where you want log file created
         #Load SharePoint DLL's
@@ -160,8 +172,10 @@ function Update-SPLabPCInfo {
         $computers = $computers | ? { $_.model -notlike "Unable*"}
         $ModelID = UpdateSPModel -Computers $Computers
     }
-    Process {
-        foreach ($computer in $Computers) {
+    Process
+    {
+        foreach ($computer in $Computers)
+        {
             Write-Verbose "Updating $computer"
             $web = $Context.Web
             $weblist = "Computer Inventory"
@@ -177,7 +191,8 @@ function Update-SPLabPCInfo {
             $items = $list.GetItems($Query)  
             $context.Load($items)
             $context.ExecuteQuery()
-            if ($items.count -eq 0) {
+            if ($items.count -eq 0)
+            {
                 $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
                 $itemCreateInfo
                 $new = $list.AddItem($itemCreateInfo)
@@ -188,7 +203,8 @@ function Update-SPLabPCInfo {
                 $context.ExecuteQuery()
 
             }
-            if ($items.count -gt 0) {
+            if ($items.count -gt 0)
+            {
                 $items[0]["Title"] = $computer.Computer
                 $items[0]["Memory"] = $Computer.TotalPhysicalMemory
                 $items[0]["Serial_x0020_Number"] = $Computer.SerialNumber
@@ -196,29 +212,35 @@ function Update-SPLabPCInfo {
                 # Get HD Info	 
                 $HDInfo = UpdateSPHardDrive -ComputerInfo $computer -ComputerID $items[0]["ID"]
                 $LookupCollection = @()
-                foreach ($HD in $HDinfo) {
-                    if ($hd.id -ne $null) {
+                foreach ($HD in $HDinfo)
+                {
+                    if ($hd.id -ne $null)
+                    {
                         $lookupValue = New-Object Microsoft.SharePoint.Client.FieldLookupValue
                         $lookupvalue.LookupId = $HD.ID
                         $lookupCollection += $lookupValue
                     }
                 }
-                If ($LookupCollection.count -gt 0) {  
+                If ($LookupCollection.count -gt 0)
+                {  
                     $items[0]["Hard_x0020_Drives"] = [Microsoft.SharePoint.Client.FieldLookupValue[]]$lookupCollection 
                 }
 
 
                 $NetInfo = UpdateSPNetwork -ComputerInfo $computer -ComputerID $items[0]["ID"]
                 $LookupCollection = @()
-                foreach ($Net in $Netinfo) {
-                    if ($Net.id -ne $null) {
+                foreach ($Net in $Netinfo)
+                {
+                    if ($Net.id -ne $null)
+                    {
                         $lookupValue = New-Object Microsoft.SharePoint.Client.FieldLookupValue
                         $lookupvalue.LookupId = $Net.ID
 		   
                         $lookupCollection += $lookupValue
                     }
                 }
-                If ($LookupCollection.count -gt 0) {  
+                If ($LookupCollection.count -gt 0)
+                {  
                     $items[0]["Network"] = [Microsoft.SharePoint.Client.FieldLookupValue[]]$lookupCollection 
                 }
 
@@ -235,7 +257,8 @@ function Update-SPLabPCInfo {
 
     }
 	
-    End {
+    End
+    {
     }
 }
 #endregion Update-SPLabPCInfo
@@ -251,7 +274,8 @@ function Update-SPLabPCInfo {
 .EXAMPLE
    Another example of how to use this cmdlet
 #>
-function UpdateSPModel {
+function UpdateSPModel
+{
     [CmdletBinding()]
 	
     Param
@@ -263,7 +287,8 @@ function UpdateSPModel {
         [object[]]$Computers
     )
 
-    Begin {
+    Begin
+    {
         $ErrorActionPreference = "Continue"
         #Edit to match full path and filename of where you want log file created
         #Load SharePoint DLL's
@@ -276,8 +301,10 @@ function UpdateSPModel {
         $computers = $computers | ? { $_.model -notlike "Unable*"}
         $ModelID = @()
     }
-    Process {
-        foreach ($computer in $Computers) {
+    Process
+    {
+        foreach ($computer in $Computers)
+        {
             $web = $Context.Web
             $weblist = "LKUPModel"
             $Context.Load($web) 
@@ -293,7 +320,8 @@ function UpdateSPModel {
             $context.ExecuteQuery()
         
 
-            if ($items.count -eq 0) {
+            if ($items.count -eq 0)
+            {
                 # No Data info found.  Add new computer info
                 $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
                 $itemCreateInfo
@@ -307,13 +335,16 @@ function UpdateSPModel {
                 $context.ExecuteQuery()
 
             }
-            Else {
+            Else
+            {
                 $ID = "" | Select Computer, ID
                 $ID.Computer = $computer.Computer
-                If ($items[0]["ID"] -ne $null) {
+                If ($items[0]["ID"] -ne $null)
+                {
                     $ID.ID = $items[0]["ID"]
                 }
-                else {
+                else
+                {
                     #No Data Found
                     $ID.ID = "Not Found"
                 }
@@ -327,7 +358,8 @@ function UpdateSPModel {
 	   
 		
     }
-    End {
+    End
+    {
         Return $ModelID
     }
 }
@@ -346,7 +378,8 @@ function UpdateSPModel {
 .EXAMPLE
    Another example of how to use this cmdlet
 #>
-function UpdateSPHardDrive {
+function UpdateSPHardDrive
+{
     [CmdletBinding()]
     [OutputType([object[]])]
     Param
@@ -362,7 +395,8 @@ function UpdateSPHardDrive {
         [string]$ComputerID
     )
 
-    Begin {
+    Begin
+    {
         write-debug "Updating HD's for $($computerinfo.computer)"
         $ErrorActionPreference = "Continue"
         #Edit to match full path and filename of where you want log file created
@@ -379,8 +413,10 @@ function UpdateSPHardDrive {
         # Remove-Variable HDinfo -scope global #-ErrorAction SilentlyContinue
         #New-Variable HDInfo -Scope Global
     }
-    Process {
-        foreach ($HD in $ComputerInfo.HD) {
+    Process
+    {
+        foreach ($HD in $ComputerInfo.HD)
+        {
             $web = $Context.Web
             $weblist = "LKUPHardDrives"
             $Context.Load($web) 
@@ -393,7 +429,8 @@ function UpdateSPHardDrive {
             $items = $list.GetItems($Query)  
             $context.Load($items)
             $context.ExecuteQuery()
-            If ($items.count -eq 0) {
+            If ($items.count -eq 0)
+            {
                 $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
                 $itemCreateInfo
                 $new = $list.AddItem($itemCreateInfo)
@@ -404,7 +441,8 @@ function UpdateSPHardDrive {
                 $context.Load($items)
                 $context.ExecuteQuery()
             }
-            if ($items.count -gt 0) {
+            if ($items.count -gt 0)
+            {
 		   
                 $items[0]["Total_x0020_Size"] = $hd.TotalSize
                 $items[0]["Free_x0020_Space"] = $hd.Freespace
@@ -417,7 +455,8 @@ function UpdateSPHardDrive {
                 $items[0].update()
                 $context.ExecuteQuery()
             }
-            Else {
+            Else
+            {
                 # No Data info found.  Add new computer info 
 		   
                 $ID = "" | Select Computer, ID
@@ -433,7 +472,8 @@ function UpdateSPHardDrive {
     }
 	   
    
-    End {
+    End
+    {
         write-debug "End Updating HD"
       
         return $HardDriveIDs
@@ -447,7 +487,8 @@ function UpdateSPHardDrive {
 
 ###############################################################################################
 
-function UpdateSPNetWork {
+function UpdateSPNetWork
+{
     [CmdletBinding()]
     [OutputType([object[]])]
     Param
@@ -463,7 +504,8 @@ function UpdateSPNetWork {
         [string]$ComputerID
     )
 
-    Begin {
+    Begin
+    {
         write-debug "Updating Networks's for $($computerinfo.computer)"
         $ErrorActionPreference = "Continue"
         #Edit to match full path and filename of where you want log file created
@@ -477,11 +519,11 @@ function UpdateSPNetWork {
         # $Context.Credentials = $creds
         $computers = $computers | ? { $_.model -notlike "Unable*"}
         $NetWorkIDs = @()
-        Remove-Variable HDinfo -scope global #-ErrorAction SilentlyContinue
-        New-Variable HDInfo -Scope Global
-    }
-    Process {
-        foreach ($Network in $ComputerInfo.Network) {
+    }  
+    Process
+    {
+        foreach ($Network in $ComputerInfo.Network)
+        {
             $web = $Context.Web
             $weblist = "LKUPNetworkCard"
             $Context.Load($web) 
@@ -489,13 +531,14 @@ function UpdateSPNetWork {
 
             $list = $web.Lists.GetByTitle($weblist)
             $Query = New-Object Microsoft.SharePoint.Client.CamlQuery
-            $Model = $computer.Model #.Replace(" ","_x0020_")
+            
             $query.ViewXml = "<View Scope='RecursiveAll'><Query>,<Where><Eq><FieldRef Name='Title'/><Value Type='Text'>$($NetWork.MAC)</Value></Eq></Where></Query></View>"
             #[Microsoft.SharePoint.Client.CamlQuery]::CreateAllItemsQuery().Viewxml
             $items = $list.GetItems($Query)  
             $context.Load($items)
             $context.ExecuteQuery()
-            If ($items.count -eq 0) {
+            If ($items.count -eq 0)
+            {
                 #Record not found.  Create initial Record
                 $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
                 $itemCreateInfo
@@ -508,7 +551,8 @@ function UpdateSPNetWork {
                 $context.Load($items)
                 $context.ExecuteQuery()
             }
-            if ($items.count -gt 0) {
+            if ($items.count -gt 0)
+            {
                 #Update Record
                 $items[0]["IP_x0020_Address"] = $Network.IP | % { $_}
                 $items[0]["SUBNET"] = $network.subnet | % { $_}
@@ -527,7 +571,8 @@ function UpdateSPNetWork {
                 $items[0].update()
                 $context.ExecuteQuery()
             }
-            Else {
+            Else
+            {
                 # Record not found and unable to add new Record for some reason.  
                 $ID = "" | Select Computer, ID
                 $ID.Computer = $ComputerInfo.Computer.ToString()
@@ -542,24 +587,119 @@ function UpdateSPNetWork {
     }
 	   
    
-    End {
+    End
+    {
 	       
         return $NetWorkIDs
     }
 }
 
+
+
 ###############################################################################################
-<#
-.Synopsis
-Short description
-    .DESCRIPTION
-Long description
-    .EXAMPLE
-Example of how to use this cmdlet
-    .EXAMPLE
-Another example of how to use this cmdlet
-#>
-function Get-SiemensSoftware {
+
+function UpdateSPMasterSoftware
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 0)]
+        [object[]]$ComputerInfo
+        <#    [Parameter(Mandatory = $true,
+            ValueFromPipelineByPropertyName = $true,
+            Position = 1)]
+        [string]$ComputerID #>
+    )
+
+    Begin
+    {
+        write-debug "Updating Software's for $($computerinfo.computer)"
+        $ErrorActionPreference = "Continue"
+        #Edit to match full path and filename of where you want log file created
+        #Load SharePoint DLL's
+
+        [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
+        [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client.Runtime")
+        $weburl = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7"
+        $Context = New-Object Microsoft.SharePoint.Client.ClientContext($webUrl) 
+
+        # $Context.Credentials = $creds
+        $computers = $computers | ? { $_.model -notlike "Unable*"}
+        $SoftwareIDs = @()
+     
+    }
+    Process
+    {
+        foreach ($Software in $ComputerInfo.Software)
+        {
+            $web = $Context.Web
+            $weblist = "MLKUPSoftware"
+            $Context.Load($web) 
+            $Context.ExecuteQuery() 
+            $qry = @()
+            if ($Software.ProdName -ne $null) { $qry += "<Eq><FieldRef Name='Title'/><Value Type='Text'>$($Software.ProdName)</Value></Eq>"}
+            If ($Software.ProdGroup -ne $null) { $qry += "<Eq><FieldRef Name='Product_x0020_Group'/><Value Type='Text'>$($Software.ProdGroup)</Value></Eq>"}
+            if ($Software.VersionString -ne $null) { $qry += "<Eq><FieldRef Name='Software_x0020_Version'/><Value Type='Text'>$($Software.VersionString)</Value></Eq>"}
+            if ($Software.Release -ne $null) { $qry += "<Eq><FieldRef Name='Release_x0020_Version'/><Value Type='Text'>$($Software.Release)</Value></Eq>"}
+            if ($Software.TechnVersion -ne $null) { $qry += "<Eq><FieldRef Name='TechnicalVersion'/><Value Type='Text'>$($Software.TechnVersion)</Value></Eq>"}
+            $list = $web.Lists.GetByTitle($weblist)
+            $Query = New-Object Microsoft.SharePoint.Client.CamlQuery
+            Switch ( $qry.count)
+            {
+                1 {$query.ViewXml = "<View Scope='RecursiveAll'><Query><Where>$($qry[0])</Where></Query></View>" }
+                2 {$query.ViewXml = "<View Scope='RecursiveAll'><Query><Where><And>$($qry[0])$($qry[1])</And></Where></Query></View>" }
+                3 {$query.ViewXml = "<View Scope='RecursiveAll'><Query><Where><And>$($qry[2])<And>$($qry[0])$($qry[1])</And></And></Where></Query></View>" }
+                4 {$query.ViewXml = "<View Scope='RecursiveAll'><Query><Where><And>$($qry[3])<And>$($qry[2])<And>$($qry[0])$($qry[1])</And></And></And></Where></Query></View>" }
+                5 {$query.ViewXml = "<View Scope='RecursiveAll'><Query><Where><And>$($qry[4])<And>$($qry[3])<And>$($qry[2])<And>$($qry[0])$($qry[1])</And></And></And></And></Where></Query></View>" }
+            }
+    
+            $items = $list.GetItems($Query)  
+            $context.Load($items)
+            $context.ExecuteQuery()
+            Write-Verbose $Software
+            If ($items.count -eq 0)
+            {
+                #Record not found.  Create initial Record
+                Write-Verbose "Record not Found  $($Software.ProdName) ::   $($software.VersionString)"
+                $itemCreateInfo = New-Object Microsoft.SharePoint.Client.ListItemCreationInformation 
+                $itemCreateInfo
+                $new = $list.AddItem($itemCreateInfo)
+                $new["Title"] = $software.ProdName
+                $new["Release_x0020_Version"] = $Software.Release
+                $new["Software_x0020_Version"] = $Software.VersionString
+                $new["TechnicalVersion"] = $Software.TechnVersion
+                $new["Product_x0020_Group"] = $Software.ProdGroup
+                $new["Vendor"] = "Siemens"
+                $new.Update()
+                $Context.ExecuteQuery()
+                #Reload Items to get new Record ID
+                $context.Load($items)
+                $context.ExecuteQuery()
+            }
+           	   
+        }
+		
+
+    }
+	   
+   
+    End
+    {
+	       
+        return $SoftwareIDs
+    }
+}
+###############################################################################################
+
+
+
+
+function Get-SiemensSoftware
+{
     [CmdletBinding()]
     [OutputType([object[]])]
     Param
@@ -572,41 +712,77 @@ function Get-SiemensSoftware {
 
     )
 
-    Begin {
+    Begin
+    {
     }
-    Process {
-        $HKLM = 2147483650
-        $Regkeys = @("SOFTWARE\Wow6432Node\Siemens\AUTSW", "SOFTWARE\Siemens\AUTSW")
+    Process
+    {
+        foreach ($computer in $computers)
+        {     
+            <#  try
+            { #>
+            Write-Verbose "Enter Computers"
+            $HKLM = 2147483650
+            $Regkeys = @("SOFTWARE\Wow6432Node\Siemens\AUTSW", "SOFTWARE\Siemens\AUTSW")
 
-        $objReg = [WMIClass]"\\$computer\root\default:StdRegProv"
-        $values = @("ProdGroup", "ProdName", "VersionString", "Release", "TechnVersion")
-
-        #$keys = $objReg.EnumKey($hklm, $regkey)
-        $software = @()
-        foreach ($regKey in $regkeys) {
-            foreach ($key in $keys) {
-                $subkeys = $objReg.EnumKey($HKLM, $Regkey)
-                Foreach ($Sub in $subkeys.sNames) {
-
-                    $v = "" | Select ProdGroup, ProdName, VersionString, Release, TechnVersion
-                    $values | % { $v.$_ = ($objReg.GetStringValue($HKLM, "$regkey\$sub", $_)).svalue }
-                    if ($v.ProdName -ne $null)
-                    { $software += $v }
+            $objReg = [WMIClass]"\\$computer\root\default:StdRegProv"
+            $values = @("ProdGroup", "ProdName", "VersionString", "Release", "TechnVersion")
+            $keys = $objReg.EnumKey($hklm, $regkeys)
+            $software = @()
+            foreach ($regKey in $regkeys)
+            {
+                Write-Verbose "Enter Registry"
+                foreach ($key in $keys)
+                {
+                    Write-Verbose "Enter Keys"
+                    $subkeys = $objReg.EnumKey($HKLM, $Regkey)
+                    Foreach ($Sub in $subkeys.sNames)
+                    {
+                        Write-Verbose "Enter SubKeys"
+                        $v = "" | Select-Object ProdGroup, ProdName, VersionString, Release, TechnVersion
+                        $values | % { $v.$_ = ($objReg.GetStringValue($HKLM, "$regkey\$sub", $_)).svalue }
+                        if ($v.ProdName -ne $null)
+                        { 
+                            $index = -1
+                            If ($software -ne $null)
+                            {
+                                $index = $software.ProdName.IndexOf($v.ProdName)
+                            }
+                            If ($index -eq -1 -or $software -eq $null )    
+                            {$software += $v }
+                            else
+                            {
+                                if ($software[$index].ProdGroup -eq $null) { $software[$index].ProdGroup = $v.ProdGroup}
+                                if ($software[$index].VersionString -eq $null) { $software[$index].VersionString = $v.VersionString}
+                                if ($software[$index].Release -eq $null) { $software[$index].Release = $v.Release}
+                                if ($software[$index].TechnVersion -eq $null) { $software[$index].TechnVersion = $v.TechnVersion}
+                            }
+                        }
+                        
+                    }
 
                 }
 
             }
+            <#   }
+          
+            catch
+            {
+              
+            } #>
+            
         }
     }
-    End {
+    End
+    {
         return $software
     }
 }
 
-
-
 #http://community.idera.com/powershell/powertips/b/tips/posts/calculate-broadcast-address
-function Get-BroadcastAddress {
+
+function Get-BroadcastAddress
+{
     param
     (
         [Parameter(Mandatory = $true)]
@@ -614,12 +790,14 @@ function Get-BroadcastAddress {
         $SubnetMask = '255.255.255.0'
     )
 
-    filter Convert-IP2Decimal {
+    filter Convert-IP2Decimal
+    {
         ([IPAddress][String]([IPAddress]$_)).Address
     }
 
 
-    filter Convert-Decimal2IP {
+    filter Convert-Decimal2IP
+    {
         ([System.Net.IPAddress]$_).IPAddressToString 
     }
 
@@ -628,3 +806,5 @@ function Get-BroadcastAddress {
     [UInt32]$broadcast = $ip -band $subnet 
     $broadcast -bor -bnot $subnet | Convert-Decimal2IP
 }
+
+$compinfo = Get-LabPCInfo -Computers (gc .\computers.txt)
