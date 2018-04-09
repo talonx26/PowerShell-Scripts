@@ -391,3 +391,4 @@ function UpdateSiemensLicense
 
 
 get-licensescan -verbose
+$ListWebService = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7/_vti_bin/lists.asmx"
