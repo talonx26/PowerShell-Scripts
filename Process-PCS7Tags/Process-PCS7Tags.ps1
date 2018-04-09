@@ -202,9 +202,9 @@ function ConvertTo-WonderWareTags
 
 
 
-$PCS7 = "wpcs7lj005"
-$TopicName = "M111H05"
-$file = ".\Data\WPCS7LJ005 - Tag Export.txt"
+$PCS7 = "wpcs7lj006ss1"
+$TopicName = "M109H03"
+$file = ".\Data\4-5-18 Wpcs7lj006es-R100.txt"
 
 
 
