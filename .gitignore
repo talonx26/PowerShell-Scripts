@@ -268,3 +268,16 @@ GetLicenseScan/*.dll
 GetLicenseScan/TwainDotNet.XML
 GetLicenseScan/log4net.xml
 >>>>>>> 64543e5cf4d8b6d6dff4776d83523198a213ec51
+Get-LabPCInfo/test*.ps1
+Process-PCS7Tags/Test*.ps1
+Get-LabPCInfoSPO/LabPCInfo/*.dll
+Get-LabPCInfo/*.dll
+Process-PCS7Tags/Data/*.csv
+Get-LabPCInfoSPO/LabPCInfo/*.csv
+Get-LabPCInfoSPO/LabPCInfo/test*.ps1
+Get-LabPCInfo/test.ps1
+Get-LabPCInfoSPO/LabPCInfo/test.xml
+Get-LabPCInfoSPO/LabPCInfo/*.jpg
+Get-LabPCInfoSPO/LabPCInfo/*.txt
+Process-PCS7Tags/*.txt
+Get-LabPCInfo/test.ps1
