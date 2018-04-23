@@ -98,7 +98,7 @@ function get-LicenseScan
                     {
                         Write-Host "More then 2 Barcodes were detected."
                         $x = 1
-                        $barcodes | % { Write-host "$x : $_"; $x++}
+                        $barcodes | ForEach-Object { Write-host "$x : $_"; $x++}
                         Write-host "1. Detected FileName : $filename"
                         Write-host "2. Detected Directory : $Directory"
                         
@@ -303,15 +303,15 @@ function UpdateSiemensLicense
 
     Begin
     {
-        write-debug "Updating License's"
+        
         $ErrorActionPreference = "Continue"
-        #Edit to match full path and filename of where you want log file created
         #Load SharePoint DLL's
-
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client.Runtime")
-        $weburl = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7"
-        $Context = New-Object Microsoft.SharePoint.Client.ClientContext($webUrl) 
+        $webURL = "https://workspaces.bsnconnect.com/teams/LabAutomation"
+        $context = New-Object Microsoft.SharePoint.Client.ClientContext($webURL)
+        $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($creds.UserName, $creds.Password)
+        $context.Credentials = $credentials
 
     }
     Process
@@ -346,30 +346,23 @@ function UpdateSiemensLicense
                 $context.Load($items)
                 $context.ExecuteQuery()
             }
-            if ($items.count -gt 0)
+            if ($items.count -gt 1)
             {
                 #Update Record
-                $items[0]["IP_x0020_Address"] = $Network.IP | % { $_}
-                $items[0]["SUBNET"] = $network.subnet | % { $_}
-                $items[0]["Gateway"] = $network.Gateway | % { $_}
-                $items[0]["Broadcast_x0020_IP"] = $network.BroadcastIP 
-                $items[0]["Computer"] = $ComputerID
-                $items[0]["Network_x0020_Name"] = $NetWork.Name 
-                $s = "" ; $Network.DNS | % { $s += "$_<br/>"}
-                $items[0]["DNS"] = $s
-                $s = "" ; $Network.DNSSearchSuffix | % { $s += "$_<br/>"}
-                $items[0]["DNS_x0020_Search_x0020_Suffix"] = $s
-                $ID = "" | Select Computer, ID
-                $ID.Computer = $ComputerInfo.Computer
-                $ID.ID = $items[0]["ID"]
-                $NetworkIDs += $ID
-                $items[0].update()
+                $att = [Microsoft.SharePoint.Client.AttachmentCreationInformation]::new()
+                $file = [System.IO.FileStream]::new($f, [System.IO.FileMode]::Open)
+                $att.ContentStream = $file
+                $att.FileName = $file.name.split("\")[-1]
+
+                [Microsoft.SharePoint.Client.Attachment]$attach = $item.AttachmentFiles.add($att)
+
+                $context.load($attach)
                 $context.ExecuteQuery()
             }
             Else
             {
                 # Record not found and unable to add new Record for some reason.  
-                $ID = "" | Select Computer, ID
+                $ID = "" | Select-Object Computer, ID
                 $ID.Computer = $ComputerInfo.Computer.ToString()
                 $ID.ID = "Not Found"
                 $NetworkIDs += $ID
@@ -390,5 +383,5 @@ function UpdateSiemensLicense
 }
 
 
-get-licensescan -verbose
-$ListWebService = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7/_vti_bin/lists.asmx"
+#get-licensescan -verbose
+#$ListWebService = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7/_vti_bin/lists.asmx"
