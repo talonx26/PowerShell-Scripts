@@ -105,7 +105,39 @@ function get-LicenseScan
                             }
                         }            
                     }
-                   
+                    <#      
+                   If ($barcodes.count -gt 2)
+                    {
+                        Write-Host "More then 2 Barcodes were detected."
+                        $x = 1
+                        $barcodes | ForEach-Object { Write-host "$x : $_"; $x++}
+                        Write-host "1. Detected FileName : $filename"
+                        Write-host "2. Detected Directory : $Directory"
+                        
+                        #  $file = Read-Host -Prompt "Please enter number for the correct filename" 
+                        #  $dir = Read-Host -Prompt "Please enter number for the correct directory"
+                    }
+                 If ($barcodes.count -lt 2)
+                    {
+                        If ($filename -eq "")
+                        {
+                            $index = 1
+                            $fileName = "No Serial-Scan-$index.jpg"
+                        
+                            $directory = "Problem\$directory"
+                            
+                            While (Test-Path ("$OutDirectory\$directory\$filename.jpg"))
+                            {
+                                $index++
+                                $fileName = "No Serial-Scan-$index"
+                                
+                                Write-Verbose "File exists changing file name to $filename"
+                            }
+                            Write-Verbose "No Serial Detected"
+                            Write-Verbose "Directory : $directory"
+                        }
+                    }
+ #>
                     If ($barcodes.count -ne 2)
                     {
                         $directory = "Problem\$directory"

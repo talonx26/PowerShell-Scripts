@@ -1,7 +1,7 @@
 ﻿#$TargetComputer = "wpcs7lj013ss1"
 
 
-#psexec \\10.100.65.222 netsh advfirewall firewall set rule group="Windows Management Instrumentation (WMI)" new enable=yes
+#psexec \\10.100.62.195 netsh advfirewall firewall set rule group="Windows Management Instrumentation (WMI)" new enable=yes
 
 
 #region Get-LabPCInfo

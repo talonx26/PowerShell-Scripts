@@ -40,9 +40,10 @@ function New-RegistryValue
         [Parameter(Mandatory, 
             ValueFromPipeline)]
         [string[]]$Computers,
-
+        [string] $Path = "Software",
         [ValidateNotNullOrEmpty()]
         [string]$subkey,
+    
         [ValidateSet([Microsoft.Win32.RegistryValueKind]::DWord, 
             [Microsoft.Win32.RegistryValueKind]::Binary,
             [Microsoft.Win32.RegistryValueKind]::MultiString,
@@ -79,7 +80,7 @@ function New-RegistryValue
             {
                 $Registrykey = "" | Select-Object Computer, SubKey, Key, Value, Created
                 $Registrykey.Computer = $Computer
-                $Registrykey.SubKey = "Software\$subkey"
+                $Registrykey.SubKey = "$Path\$subkey"
                 $Registrykey.Key = $Key
                 $Registrykey.value = $value
                 if (!(test-connection $computer -count 1 -erroraction stop))
@@ -96,7 +97,7 @@ function New-RegistryValue
                 
            
           
-                if (!$baseKey.OpenSubKey("Software\$subKey"))
+                if (!$baseKey.OpenSubKey("$Path\$subKey"))
                 {
                     #Key doesn't exist Create it
                     #OpenSubkey with $true for write mode
@@ -107,7 +108,7 @@ function New-RegistryValue
                     
                 }
                 #OpenSubkey with $true for write mode
-                $k = $baseKey.OpenSubKey("Software\$subkey", $true)
+                $k = $baseKey.OpenSubKey("$Path\$subkey", $true)
                 $k.SetValue($Key, $Value, $type)
                 $Registrykey.Created = $true
             }
