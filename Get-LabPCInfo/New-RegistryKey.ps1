@@ -159,3 +159,20 @@ function New-RegistryValue
 }
 
 #New-RegistryValue -Computers "Wpcs7lj015es" -subkey "Dow" -type String -Key "CSD" -Value "2018-0002"
+<#
+Foreach ($c in $csv)
+{
+    Foreach ($prop in $c.psobject.properties)
+    {
+        If ($prop.Name -ne "Computer")
+        {
+                
+            New-RegistryValue -Computers $c.computer -subkey "DOW" -type String -Key $Prop.Name -Value $prop.Value
+        
+        }
+    }    
+
+
+}
+
+#>
