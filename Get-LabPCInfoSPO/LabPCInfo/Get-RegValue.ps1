@@ -66,8 +66,20 @@ function Get-RegValue
                 
                 try
                 {
-                    $service = (Get-Service -ComputerName $computer -Name RemoteRegistry).Status
-                    If ($service -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | Start-Service}
+                    $Service = Get-Service -ComputerName $computer -Name RemoteRegistry
+                    #Stores Startup Type to restore back to original status when finished.
+                    if ($service.StartType -eq "Disabled")
+                    {
+                        $service | Set-Service -StartupType Manual
+                        # Start-Sleep -Seconds 1
+                        $blnRemoteRegistryDisabled = $true
+                    }
+                    else
+                    {
+                        $blnRemoteRegistryDisabled = $false
+                    }
+                    $RemoteRegistryStatus = (Get-Service -ComputerName $computer -Name RemoteRegistry).Status
+                    If ($RemoteRegistryStatus -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | Start-Service}
                     $Registrykey = "" | Select-Object Computer, SubKey, Key, Value
                     $Registrykey.Computer = $Computer
                     $Registrykey.SubKey = "Software\$Path"
@@ -93,7 +105,12 @@ function Get-RegValue
                 #Use foreach scripting construct to make parameter input work the same as pipeline input (iterate through the specified items one at a time).
                 $registrykeys += $Registrykey
                 #Stop RemoteRegistry service if it was stopped before.
-                If ($service -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | stop-Service}
+                If ($RemoteRegistryStatus -eq 'Stopped')
+                {
+                    Get-Service -ComputerName $computer -Name RemoteRegistry | stop-Service
+                    #Start-Sleep -Seconds 2
+                }
+                if ($blnRemoteRegistryDisabled) { $Service | Set-Service -StartupType Disabled}
             }
         }
     }

@@ -87,8 +87,21 @@ function New-RegistryValue
                 {
                     throw [System.Management.Automation.MethodInvocationException]
                 }
-                $service = (Get-Service -ComputerName $computer -Name RemoteRegistry).Status
-                If ($service -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | Start-Service}
+                $Service = Get-Service -ComputerName $computer -Name RemoteRegistry
+                #Stores Startup Type to restore back to original status when finished.
+                if ($service.StartType -eq "Disabled")
+                {
+                    $service | Set-Service -StartupType Manual
+                    # Start-Sleep -Seconds 1
+                    $blnRemoteRegistryDisabled = $true
+                }
+                else
+                {
+                    $blnRemoteRegistryDisabled = $false
+                }
+                $RemoteRegistryStatus = (Get-Service -ComputerName $computer -Name RemoteRegistry).Status
+                  
+                If ($RemoteRegistryStatus -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | Start-Service}
                 
                 $hive = [Microsoft.Win32.RegistryHive]::LocalMachine
                 $baseKey = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey($hive, $computer)
@@ -132,7 +145,8 @@ function New-RegistryValue
 
             $Registrykeys += $Registrykey
             #Stop RemoteRegistry service if it was stopped before.
-            If ($service -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | stop-Service}
+            If ($RemoteRegistryStatus -eq 'Stopped') { Get-Service -ComputerName $computer -Name RemoteRegistry | stop-Service}
+            if ($blnRemoteRegistryDisabled) { $Service | Set-Service -StartupType Disabled}
         }
     }
 
