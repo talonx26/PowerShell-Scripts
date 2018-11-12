@@ -41,7 +41,7 @@ function Update-SPHardDrive
         $context.Credentials = $credentials
         # $Context.Credentials = $creds
       
-        $computers = $computers | ? { $_.model -notlike "Unable*"}
+        $ComputerInfo = $ComputerInfo | ? { $_.model -notlike "Unable*"}
         $HardDriveIDs = @()
         # Remove-Variable HDinfo -scope global #-ErrorAction SilentlyContinue
         #New-Variable HDInfo -Scope Global
@@ -52,7 +52,7 @@ function Update-SPHardDrive
         foreach ($HD in $ComputerInfo.HD)
         {
             $percentCounter++
-            write-progress -ParentId 2 -Activity "Processing Hard Drive Information for $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter / $Computers.count) * 100)
+            write-progress -ParentId 2 -Activity "Processing Hard Drive Information for $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter /($ComputerInfo.HD|measure-object).count) * 100)
            
             $web = $Context.Web
             $weblist = "LKUPHardDrives"
@@ -85,7 +85,7 @@ function Update-SPHardDrive
                 $items[0]["Free_x0020_Space"] = $hd.Freespace
                 $items[0]["Drive"] = $hd.drive
                 $items[0]["Computer"] = $ComputerID
-                $ID = "" | Select Computer, ID
+                $ID = "" | Select-Object Computer, ID
                 $ID.Computer = $ComputerInfo.Computer
                 $ID.ID = $items[0]["ID"]
                 $HardDriveIDs += $ID
@@ -111,7 +111,7 @@ function Update-SPHardDrive
    
     End
     {
-        write-progress -ParentId 2 -Activity "Processing Hard Drive Information for $computer" -status "Updating SharePoint for $computer" -PercentComplete 100
+        write-progress -ParentId 2 -Activity "Processing Hard Drive Information for $computer" -status "Updating SharePoint for $$" -PercentComplete 100
            
       
         return $HardDriveIDs

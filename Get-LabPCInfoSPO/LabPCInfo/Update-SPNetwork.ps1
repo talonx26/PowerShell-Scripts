@@ -29,7 +29,7 @@ function Update-SPNetWork
         $context = New-Object Microsoft.SharePoint.Client.ClientContext($webURL)
         $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($creds.UserName, $creds.Password)
         $context.Credentials = $credentials
-        $computers = $computers | ? { $_.model -notlike "Unable*"}
+        $ComputerInfo = $ComputerInfo | ? { $_.model -notlike "Unable*"}
         $NetWorkIDs = @()
         $percentCounter = 0
     }  
@@ -37,7 +37,7 @@ function Update-SPNetWork
     {
         foreach ($Network in $ComputerInfo.Network)
         {
-            write-progress -ParentId 2 -Activity "Processing Hard Drive Information for $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter / $Computers.count) * 100)
+            write-progress -ParentId 2 -Activity "Processing Network Information for $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter / ($ComputerInfo.Network | Measure-Object).count) * 100)
            
             $web = $Context.Web
             $weblist = "LKUPNetworkCard"

@@ -65,7 +65,7 @@ function Update-SPLabPCInfo
             $VerbosePreference = $true
             Write-Verbose "$computer"
             $percentCounter++
-            write-progress -ParentId 1 -Activity "Processing Computer $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter / $Computers.count) * 100)
+            write-progress -ParentId 1 -Activity "Processing Computer $computer" -status "Updating SharePoint for $computer" -PercentComplete (($percentCounter / ($Computers | Measure-Object).count) * 100)
             Write-Verbose "Updating $computer"
             $web = $Context.Web
             $weblist = "Computer Inventory"
