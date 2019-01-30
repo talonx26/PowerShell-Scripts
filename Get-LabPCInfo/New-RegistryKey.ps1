@@ -160,6 +160,7 @@ function New-RegistryValue
 
 #New-RegistryValue -Computers "Wpcs7lj015es" -subkey "Dow" -type String -Key "CSD" -Value "2018-0002"
 <#
+$csv = import-csv .\regkeys-2.csv
 Foreach ($c in $csv)
 {
     Foreach ($prop in $c.psobject.properties)
