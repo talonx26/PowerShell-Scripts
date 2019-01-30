@@ -1,4 +1,6 @@
 #Requires -Version 3.0
+
+
 function Get-SPMasterSoftwareID
 {
     [CmdletBinding()]
@@ -98,3 +100,7 @@ function Get-SPMasterSoftwareID
         return $id
     }
 }
+
+
+
+#$compinfo[0].Software -clike $s

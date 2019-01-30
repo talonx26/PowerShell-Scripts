@@ -69,9 +69,11 @@ function Update-SPNetWork
             if ($items.count -gt 0)
             {
                 #Update Record
-                $items[0]["IP_x0020_Address"] = $Network.IP | % { $_}
-                $items[0]["Subnet"] = $network.subnet | % { $_}
-                $items[0]["Gateway"] = $network.Gateway | % { $_}
+                $s = "" ; $Network.IP | % { $s += "$_<br/>"}
+               $items[0]["IP_x0020_Address"] = $s 
+               $items[0]["ip_address"] = $network.ip | % {if ($_ -ne $null){if ($_.split('.').count -eq 4) {$_}} }
+                $items[0]["Subnet"] = $network.subnet | % {if ($_ -ne $null){if ($_.split('.').count -eq 4) {$_}} }
+                $items[0]["Gateway"] = $network.Gateway | % {if ($_ -ne $null){if ($_.split('.').count -eq 4) {$_}} }
                 $items[0]["Broadcast_x0020_IP"] = $network.BroadcastIP 
                 $items[0]["Computer"] = $ComputerID
                 $items[0]["Network_x0020_Name"] = $NetWork.Name 
