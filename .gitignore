@@ -286,3 +286,7 @@ Process-PCS7Tags/*.txt
 SiemensLicenseScan/DLL/Interop.WIA.dll
 SiemensLicenseScan/DLL/ClearImageX.x64.dll
 SiemensLicenseScan/DLL/ClearImageNet.70.dll
+Get-LabPCInfoSPO/LabPCInfo/creds.xml
+Misc/Test-Network.ps1
+Misc/Test-Network.Tests.ps1
+Misc/test.ps1
