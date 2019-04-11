@@ -158,7 +158,7 @@ function Update-SPLabPCInfo
                 $items[0].update()
                 $context.ExecuteQuery()
                 #Call process to update Software information
-                Update-SPSoftware -Computers $computer -ComputerID $items[0]["ID"]
+                Update-SPSoftware -Computers $computer -ComputerID $items[0]["ID"] |Out-Null
 
             }
 

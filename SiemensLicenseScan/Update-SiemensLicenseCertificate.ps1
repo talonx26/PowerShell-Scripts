@@ -48,6 +48,31 @@ function Update-SiemensLicenseCertificate
 
     Begin
     {
+        $refs = @(".\Dll\Microsoft.SharePoint.Client.dll", ".\dll\Microsoft.SharePoint.Client.Runtime.dll")
+        add-type -Path $refs
+        Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+$DS = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('domain')
+if (test-path "c:\scripts\creds\${env:username}_creds.xml")
+{
+    
+    $creds = Import-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    while (!($ds.ValidateCredentials($creds.UserName,$creds.GetNetworkCredential().password,[System.DirectoryServices.AccountManagement.ContextOptions]::Negotiate)))
+    {
+        $creds = Get-Credential -Message "Enter valid Sharepoint Online Credentials ex: fljpcnadmin@dow.com"
+        $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    }
+
+}
+else
+{
+    $creds = Get-Credential -Message "Enter Sharepoint Online Credentials ex : fljpcnadmin@dow.com"
+    $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    while (!($ds.ValidateCredentials($creds.UserName,$creds.GetNetworkCredential().password,[System.DirectoryServices.AccountManagement.ContextOptions]::Negotiate)))
+    {
+        $creds = Get-Credential -Message "Enter valid Sharepoint Online Credentials ex: fljpcnadmin@dow.com"
+        $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    }
+}
         $ErrorActionPreference = "Continue"
         #Load SharePoint DLL's
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
@@ -64,7 +89,13 @@ function Update-SiemensLicenseCertificate
         {
             #Parse Path to locate Serial Number and Part Number
             $SerialNumber = $image.split("\")[-1].split(".")[0].toupper()
+            if ($SerialNumber -match "#.*#")
+            { 
+                $notes = $matches[0]
+            }
+            $notes
             $PartNumber = $image.split("\")[$image.split("\").count - 2]
+            $SerialNumber = $SerialNumber -replace "#.*#",""
             Write-Verbose "Image  :  $Image" -Verbose
             Write-Verbose "Serial Number : $SerialNumber" -Verbose
             Write-Verbose "Part Number : $Partnumber" -verbose
@@ -118,6 +149,10 @@ function Update-SiemensLicenseCertificate
             }
             if ($items.count -eq 1)
             {
+                if ($notes -ne $null)
+                {
+                        $items[0]["Notes"] = $notes -replace "#",""
+                }
                 if ($Items[0]["Software"] -eq $null )
                 {
                     $items[0]["Software"] = $SiemensIDs[$PartNumber]
@@ -128,7 +163,7 @@ function Update-SiemensLicenseCertificate
                     $att = [Microsoft.SharePoint.Client.AttachmentCreationInformation]::new()
                     $file = [System.IO.FileStream]::new($image, [System.IO.FileMode]::Open)
                     $att.ContentStream = $file
-                    $att.FileName = $file.name.split("\")[-1]
+                    $att.FileName = $file.name.split("\")[-1] -replace "#.*#",""
                     
 
                     [Microsoft.SharePoint.Client.Attachment]$attach = $items[0].AttachmentFiles.add($att)
