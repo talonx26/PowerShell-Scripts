@@ -14,7 +14,33 @@ function Get-SiemensLicenseID
 
     BEGIN
     {
-     
+        $refs = @(".\Dll\Microsoft.SharePoint.Client.dll", ".\dll\Microsoft.SharePoint.Client.Runtime.dll")
+        add-type -Path $refs
+        Add-Type -AssemblyName PresentationCore, PresentationFramework
+#set-location c:\scripts
+Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+$DS = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('domain')
+if (test-path "c:\scripts\creds\${env:username}_creds.xml")
+{
+    
+    $creds = Import-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    while (!($ds.ValidateCredentials($creds.UserName,$creds.GetNetworkCredential().password,[System.DirectoryServices.AccountManagement.ContextOptions]::Negotiate)))
+    {
+        $creds = Get-Credential -Message "Enter valid Sharepoint Online Credentials ex: fljpcnadmin@dow.com"
+        $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    }
+
+}
+else
+{
+    $creds = Get-Credential -Message "Enter Sharepoint Online Credentials ex : fljpcnadmin@dow.com"
+    $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    while (!($ds.ValidateCredentials($creds.UserName,$creds.GetNetworkCredential().password,[System.DirectoryServices.AccountManagement.ContextOptions]::Negotiate)))
+    {
+        $creds = Get-Credential -Message "Enter valid Sharepoint Online Credentials ex: fljpcnadmin@dow.com"
+        $creds | Export-Clixml "c:\scripts\creds\${env:username}_creds.xml"
+    }
+}
         $ErrorActionPreference = "Continue"
         #Load SharePoint DLL's
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")

@@ -290,3 +290,8 @@ Get-LabPCInfoSPO/LabPCInfo/creds.xml
 Misc/Test-Network.ps1
 Misc/Test-Network.Tests.ps1
 Misc/test.ps1
+Misc/Test-Foo.TestResults.ps1
+Misc/pester-test.tests.ps1
+Misc/Alarms.xml
+SiemensLicenseScan/DLL/Microsoft.SharePoint.Client.dll
+SiemensLicenseScan/DLL/Microsoft.SharePoint.Client.Runtime.dll

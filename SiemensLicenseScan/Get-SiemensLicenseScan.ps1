@@ -118,8 +118,12 @@ function Get-SiemensLicenseScan
                     #Check Barcodes to see if p/n is already in SharePoint Site
                     $SiemensIDs = Get-SiemensLicenseID -PartNumbers $barcodes
                     $blnSiemensSoftwareFound = $false
+                    $FileTag = $Null
                     foreach ($code in $barcodes)
                     {
+
+                        If ($code.type -eq 'Code39')
+                        {
                         if ($code.text.StartsWith("S"))
                         {
                             $fileName = $code.text
@@ -138,7 +142,12 @@ function Get-SiemensLicenseScan
                             }
                             elseif (!$blnSiemensSoftwareFound)
                             { $directory = $code.text}
-                        }            
+                        }
+                    }
+                       if ($code.type -eq 'QR')
+                       {
+                          $fileTag = "#$($code.Text)#"
+                       }            
                     }
                    
                     If (($barcodes.count -ne 2 -and !$blnSiemensSoftwareFound) -or $filename -eq '' -or !$blnSiemensSoftwareFound)
@@ -146,7 +155,7 @@ function Get-SiemensLicenseScan
                         $directory = "Problem\$directory"
                         $ScanProblem = "" | Select-Object ScanNumber, Directory, FileName, Description 
                         $ScanProblem.ScanNumber = $scan
-                        $ScanProblem.FileName = $filename
+                        $ScanProblem.FileName = "$filename$filetag"
                         $ScanProblem.Directory = $directory
                         If ($barcodes.count -gt 2 ) 
                         {   
@@ -171,7 +180,7 @@ function Get-SiemensLicenseScan
                     }
                     $index = 1 
                     # If file exists increase index until file doesn't exist
-                    $tempFileName = $filename
+                    $tempFileName = "$filename$FileTag"
                     While (Test-Path ("$OutDirectory\$directory\$tempfilename.jpg") )
                     {
                       
