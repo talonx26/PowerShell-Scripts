@@ -153,9 +153,11 @@ function ConvertTo-WonderWareTags
                     $ww.ItemName = $tag.'Tag name'
                     switch ($tag.'Acquisition type')
                     {
-                        "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
+                        # changed default to Delta. preferred WW storage.
+                        "Cyclical, continuous" { $ww.StorageType = "Delta"}
                         "After every change" { $ww.StorageType = "Delta"}
-                        Default { $ww.StorageType = "UNKNOWN"}
+                        
+                        Default { $ww.StorageType = "Delta"}
                     }
             
                     #Add Tag to Descrete collection
@@ -166,16 +168,18 @@ function ConvertTo-WonderWareTags
                 {
                     #Create New object of Analog Wonderware Tag
                     $ww = new-object wwAnalogTag
-                    $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV")
+                    $ww.TagName = "$($topicName)_" + $tag.'Process Tag'.Replace("/PID.PV_IN", ".PV").Replace("/PID.SP", ".SP").Replace("/PROFIBUS.FQ_Out#Value",".Totalizer").Replace("/PID.LMN", ".MV").Replace("/FQ.", ".").Replace("/PID.MV#Value", ".MV").Replace("/PID.PV_Out#Value", ".PV").Replace(".SP#Value", ".SP").Replace("/EM.", ".").Replace("/MonAnalog.PV_Out#Value", ".PV").replace(".Out#Value", ".Out").Replace("RC_Executer_1/Exe.", "DRC.").Replace("/MonDigital", "").Replace("SP_AO", "SP").Replace("PV_Out#Value", "PV").Replace("/PROFIBUS","").Replace("Dy_Out","Density").Replace("TE_Out","Temperature").Replace("#Value","")
                     $ww.Description = $Tag.Comment
                     $ww.IOServerComputerName = $PCS7
                     $ww.TopicName = "OPC_$TopicName"
                     $ww.ItemName = $tag.'Tag name'
                     switch ($tag.'Acquisition type')
                     {
-                        "Cyclical, continuous" { $ww.StorageType = "Cyclic"}
+                        # changed default to Delta. preferred WW storage.
+                        "Cyclical, continuous" { $ww.StorageType = "Delta"}
                         "After every change" { $ww.StorageType = "Delta"}
-                        Default { $ww.StorageType = "UNKNOWN"}
+                        
+                        Default { $ww.StorageType = "Delta"}
                     }
                     if ($tag.Unit.trim() -ne '' -and $tag.unit.Trim() -ne "Perry")
                     {$ww.EngUnits = $tag.Unit }

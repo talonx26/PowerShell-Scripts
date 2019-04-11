@@ -67,6 +67,7 @@ function Read-BarCode
         $br = [Inlite.ClearImageNet.BarcodeReader]::new()
         # $barcodes = [Inlite.ClearImageNet.Barcode]::new()
         $br.Code39 = $true
+        $br.qr = $true
         $barcodes = $br.Read($Bitmap)
         #[barcodeimaging]::ScanPage([ref]$barcodes, $bitmap, 1000, 2, 1)
         Foreach ($code in $barcodes)
