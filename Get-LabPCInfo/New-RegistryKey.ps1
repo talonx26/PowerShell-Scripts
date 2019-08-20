@@ -78,6 +78,7 @@ function New-RegistryValue
         {
             Try
             {
+                $computer = $computer.trim()
                 $Registrykey = "" | Select-Object Computer, SubKey, Key, Value, Created
                 $Registrykey.Computer = $Computer
                 $Registrykey.SubKey = "$Path\$subkey"
@@ -135,7 +136,7 @@ function New-RegistryValue
             }
             catch [System.Security.SecurityException]
             {
-                $Registrykey.Computer = "User does not have permissions to write to registry"
+                $Registrykey.Created = "User does not have permissions to write to registry"
             }
             catch [System.Net.NetworkInformation.PingException]
             {

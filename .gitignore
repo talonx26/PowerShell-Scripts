@@ -295,3 +295,14 @@ Misc/pester-test.tests.ps1
 Misc/Alarms.xml
 SiemensLicenseScan/DLL/Microsoft.SharePoint.Client.dll
 SiemensLicenseScan/DLL/Microsoft.SharePoint.Client.Runtime.dll
+SharePoint Project/delete.ps1
+SharePoint Project/testcommands.ps1
+SiemensLicenseScan/DLL/ClearImage.dev.dll
+SiemensLicenseScan/DLL/ClearImageNet.70 - Copy.dll
+SiemensLicenseScan/DLL/ClearImage.x64.dev.dll
+SiemensLicenseScan/DLL/ClearImageX.x64 - Copy.dll
+Sync-SharePointProjectTree/Microsoft.SharePoint.Client.dll
+Sync-SharePointProjectTree/Microsoft.SharePoint.Client.Runtime.dll
+Sync-SharePointProjectTree/creds.xml
+Get-LabPCInfoSPO/LabPCInfo/compinfo.xml
+Get-LabPCInfoSPO/LabPCInfo/test.code-workspace
