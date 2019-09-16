@@ -175,7 +175,7 @@ function Update-SPLabPCInfo
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client.Runtime")
         #$weburl = "http://rndsharepoint.dow.com/sites/la/LASolutions/PCS7"
-        $weburl = "https://workspaces.bsnconnect.com/teams/LabAutomation"
+        $weburl = "https://workspaces.bsnconnect.com/sites/LabAuto/Inventory"
         $Context = New-Object Microsoft.SharePoint.Client.ClientContext($webUrl) 
 
         # $Context.Credentials = $creds
@@ -1036,4 +1036,4 @@ function Get-BroadcastAddress
 
 #$compinfo = Get-LabPCInfo -Computers (gc .\computers.txt)
 #Update-SPLabPCInfo -Computers $compinfo
-#https://workspaces.bsnconnect.com/teams/LabAutomation/Lists/Computer%20Inventory/AllItems.aspx
+#https://workspaces.bsnconnect.com/sites/LabAuto/Inventory/Lists/Computer%20Inventory/AllItems.aspx

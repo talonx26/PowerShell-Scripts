@@ -45,7 +45,7 @@ else
         #Load SharePoint DLL's
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client")
         [void][System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SharePoint.Client.Runtime")
-        $webURL = "https://workspaces.bsnconnect.com/teams/LabAutomation"
+        $webURL = "https://workspaces.bsnconnect.com/sites/LabAuto/Inventory"
         $context = New-Object Microsoft.SharePoint.Client.ClientContext($webURL)
         $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($creds.UserName, $creds.Password)
         $context.Credentials = $credentials

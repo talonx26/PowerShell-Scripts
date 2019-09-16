@@ -49,7 +49,7 @@ function Update-SPLabPCInfo
         $refs = @(".\Microsoft.SharePoint.Client.dll", ".\Microsoft.SharePoint.Client.Runtime.dll")
         add-type -Path $refs
         # Sharepoint Web Address and Login information
-        $webURL = "https://workspaces.bsnconnect.com/teams/LabAutomation"
+        $webURL = "https://workspaces.bsnconnect.com/sites/LabAuto/Inventory"
         $context = New-Object Microsoft.SharePoint.Client.ClientContext($webURL)
         $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($creds.UserName, $creds.Password)
         $context.Credentials = $credentials

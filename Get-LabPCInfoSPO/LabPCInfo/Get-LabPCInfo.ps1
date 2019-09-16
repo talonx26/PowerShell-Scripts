@@ -141,6 +141,6 @@ function Get-LabPCInfo
 
 #$compinfo = Get-LabPCInfo -Computers (gc .\computers1.txt)
 #Update-SPLabPCInfo -Computers $compinfo
-#https://workspaces.bsnconnect.com/teams/LabAutomation/Lists/Computer%20Inventory/AllItems.aspx
+#https://workspaces.bsnconnect.com/sites/LabAuto/Inventory/Lists/Computer%20Inventory/AllItems.aspx
 #psexec \\10.100.62.195 netsh advfirewall firewall set rule group="Windows Management Instrumentation (WMI)" new enable=yes
  #$creds = import-clixml .\creds.xml
